@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+graphene-django = "*"
+django-filter = "*"
+psycopg2-binary = "*"
+python-dotenv = "*"
+django-graphql-jwt = "*"
+
+[dev-packages]
+black = "*"
+isort = "*"
+mypy = "*"
+pytest = "*"
+pytest-django = "*"
+
+[requires]
+python_version = "3.12"
+python_full_version = "3.12.8"
