@@ -1,5 +1,5 @@
-import graphene
 import accounts.schema as accounts_schema
+import graphene
 
 
 class Query(

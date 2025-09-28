@@ -22,8 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "INSECURE-CHANGE-ME")
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ALLOWED_HOSTS = [h.strip() for h in os.getenv(
-    "ALLOWED_HOSTS", "").split(",") if h.strip()] or ["localhost"]
+ALLOWED_HOSTS = ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()
+] or ["localhost"]
 
 
 # Application definition
