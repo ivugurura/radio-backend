@@ -1,11 +1,12 @@
-
 from django.db import models
 
 from config.model import BaseModel
 
 
 class Tag(BaseModel):
-    studio = models.ForeignKey("apps.studio.Studio", on_delete=models.CASCADE, related_name="tags")
+    studio = models.ForeignKey(
+        "apps.studio.Studio", on_delete=models.CASCADE, related_name="tags"
+    )
     name = models.CharField(max_length=64)
     is_system = models.BooleanField(default=False)
 
@@ -16,6 +17,7 @@ class Tag(BaseModel):
 
     def __str__(self):
         return self.name
+
 
 class TrackTag(BaseModel):
     track = models.ForeignKey("apps.media.Track", on_delete=models.CASCADE)

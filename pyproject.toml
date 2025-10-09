@@ -7,7 +7,6 @@ skip-string-normalization = true
 profile = "black"
 line_length = 88
 known_first_party = ["apps"]
-default_section = "THIRD_PARTY"
 multi_line_output = 3
 
 [tool.ruff]

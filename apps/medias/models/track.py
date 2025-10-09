@@ -1,4 +1,3 @@
-
 from django.db import models
 
 from config.model import BaseModel
@@ -13,7 +12,9 @@ class Track(BaseModel):
         FAILED = "FAILED"
         ARCHIVED = "ARCHIVED"
 
-    studio = models.ForeignKey("apps.studio.Studio", on_delete=models.CASCADE, related_name="tracks")
+    studio = models.ForeignKey(
+        "apps.studio.Studio", on_delete=models.CASCADE, related_name="tracks"
+    )
 
     title = models.CharField(max_length=255, blank=True)
     artist = models.CharField(max_length=255, blank=True)
@@ -21,17 +22,37 @@ class Track(BaseModel):
     year = models.PositiveIntegerField(null=True, blank=True)
     genre = models.CharField(max_length=128, blank=True)
 
-    state = models.CharField(max_length=16, choices=State.choices, default=State.UPLOADING)
-    duration_seconds = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
+    state = models.CharField(
+        max_length=16, choices=State.choices, default=State.UPLOADING
+    )
+    duration_seconds = models.DecimalField(
+        max_digits=10, decimal_places=3, null=True, blank=True
+    )
     bitrate_kbps = models.PositiveIntegerField(null=True, blank=True)
-    loudness_lufs = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    peak_dbfs = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    loudness_lufs = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
+    peak_dbfs = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
 
     content_hash = models.CharField(max_length=64, db_index=True)
-    is_duplicate_of = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="duplicates")
+    is_duplicate_of = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="duplicates",
+    )
 
     processed_storage_key = models.CharField(max_length=512, blank=True)
-    upload_session = models.ForeignKey("apps.media.UploadSession", null=True, blank=True, on_delete=models.SET_NULL, related_name="tracks")
+    upload_session = models.ForeignKey(
+        "apps.media.UploadSession",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tracks",
+    )
 
     is_active = models.BooleanField(default=True)
     is_explicit = models.BooleanField(default=False)
@@ -46,6 +67,7 @@ class Track(BaseModel):
 
     def __str__(self):
         return self.title or self.id.hex
+
 
 class TrackAsset(BaseModel):
     class AssetType(models.TextChoices):

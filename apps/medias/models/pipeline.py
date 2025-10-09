@@ -1,4 +1,3 @@
-
 from django.db import models
 
 from config.model import BaseModel
@@ -12,11 +11,23 @@ class TranscodeJob(BaseModel):
         FAILED = "FAILED"
         CANCELED = "CANCELED"
 
-    studio = models.ForeignKey("apps.studio.Studio", on_delete=models.CASCADE, related_name="transcode_jobs")
-    track = models.ForeignKey("apps.media.Track", on_delete=models.CASCADE, related_name="transcode_jobs")
-    upload_session = models.ForeignKey("apps.media.UploadSession", null=True, blank=True, on_delete=models.SET_NULL, related_name="transcode_jobs")
+    studio = models.ForeignKey(
+        "apps.studio.Studio", on_delete=models.CASCADE, related_name="transcode_jobs"
+    )
+    track = models.ForeignKey(
+        "apps.media.Track", on_delete=models.CASCADE, related_name="transcode_jobs"
+    )
+    upload_session = models.ForeignKey(
+        "apps.media.UploadSession",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="transcode_jobs",
+    )
 
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.QUEUED
+    )
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     worker_id = models.CharField(max_length=64, blank=True)
@@ -26,8 +37,12 @@ class TranscodeJob(BaseModel):
     input_storage_key = models.CharField(max_length=512, blank=True)
     output_storage_key = models.CharField(max_length=512, blank=True)
 
-    loudness_lufs = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
-    peak_dbfs = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    loudness_lufs = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
+    peak_dbfs = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
     target_bitrate_kbps = models.PositiveIntegerField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
