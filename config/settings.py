@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+
+import datetime
 import os
 from pathlib import Path
 
@@ -39,10 +41,10 @@ INSTALLED_APPS = [
     # Third-party
     "graphene_django",
     "django_filters",
-		# Apps
-		"apps.media",
-		"apps.studio",
-		"apps.users",
+    # Apps
+    "apps.media",
+    "apps.studio",
+    "apps.users",
 ]
 
 MIDDLEWARE = [
@@ -142,7 +144,21 @@ GRAPHENE = {
     ],
 }
 
+GRAPHQL_JWT = {
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_EXPIRATION_DELTA": datetime.timedelta(minutes=30),
+    "JWT_REFRESH_EXPIRATION_DELTA": datetime.timedelta(days=7),
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,  # allows refresh token usage
+    # Optional: rotate tokens
+    # "JWT_ROTATE_REFRESH_TOKENS": True,
+}
+
 AUTHENTICATION_BACKENDS = [
     "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]

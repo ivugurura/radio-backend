@@ -6,6 +6,7 @@ class BaseQuerySet(models.QuerySet):
     """
     Custom queryset for BaseModel
     """
+
     def delete(self):
         return super().update(deleted_at=timezone.now())
 
@@ -22,7 +23,7 @@ class BaseManager(models.Manager):
     """
 
     def __init__(self, *args, **kwargs):
-        self.alive_only = kwargs.pop('alive_only', True)
+        self.alive_only = kwargs.pop("alive_only", True)
         super(BaseManager, self).__init__(*args, **kwargs)
 
     def get_queryset(self):

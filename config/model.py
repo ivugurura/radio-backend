@@ -1,5 +1,5 @@
-
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -7,30 +7,31 @@ from config.manager import BaseManager
 
 
 class BaseModel(models.Model):
-	"""
-	General model to implement common fields and soft delete
+    """
+    General model to implement common fields and soft delete
 
-	Attributes:
-	created_at: Holds date/time for when an object was created.
-	updated_at: Holds date/time for last update on an object.
-	deleted_at: Holds date/time for soft-deleted objects.
-	objects: Return objects that have not been soft-deleted.
-	all_objects: Return all objects(soft-deleted inclusive)
-	"""
-	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-	created_at = models.DateTimeField(default=timezone.now, null=True)
-	updated_at = models.DateTimeField(default=timezone.now, null=True)
-	deleted_at = models.DateTimeField(blank=True, null=True)
+    Attributes:
+    created_at: Holds date/time for when an object was created.
+    updated_at: Holds date/time for last update on an object.
+    deleted_at: Holds date/time for soft-deleted objects.
+    objects: Return objects that have not been soft-deleted.
+    all_objects: Return all objects(soft-deleted inclusive)
+    """
 
-	objects = BaseManager()
-	all_objects = BaseManager(alive_only=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(default=timezone.now, null=True)
+    updated_at = models.DateTimeField(default=timezone.now, null=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
 
-	class Meta:
-		abstract = True
+    objects = BaseManager()
+    all_objects = BaseManager(alive_only=False)
 
-	def delete(self):
-		self.deleted_at = timezone.now()
-		self.save()
+    class Meta:
+        abstract = True
 
-	def hard_delete(self):
-		super(BaseModel, self).delete()
+    def delete(self):
+        self.deleted_at = timezone.now()
+        self.save()
+
+    def hard_delete(self):
+        super(BaseModel, self).delete()
