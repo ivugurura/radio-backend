@@ -1,22 +1,38 @@
 import uuid
-from django.conf import settings
+
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-from config.model import BaseModel
+from apps.users.manager import UserManager
 
 
-class UserProfile(BaseModel):
-    """
-    Optional extension profile. Keep minimal until needed.
-    """
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="profile",
-    )
-    display_name = models.CharField(max_length=120, blank=True)
-    avatar_url = models.URLField(blank=True)
-    timezone = models.CharField(max_length=64, default="UTC")
+class User(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=50, blank=False)
+    last_name = models.CharField(max_length=50, blank=False)
+    middle_name = models.CharField(max_length=50)
+    user_name = models.CharField(max_length=50, unique=True, blank=False)
+    phone = models.CharField(max_length=50, unique=True, blank=False)
+    profile_picture = models.CharField(max_length=255, null=True)
+    email = models.EmailField(_("email address"), unique=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=True)
+    previous_passwords = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
+
+    class Meta:
+        db_table = "users"
 
     def __str__(self):
-        return self.display_name or self.user.get_username()
+        return f"{self.first_name} {self.last_name}"
+
+    def get_previous_passwords(self):
+        return self.previous_passwords.split(",")
