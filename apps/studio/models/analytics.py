@@ -10,7 +10,7 @@ class PlayEvent(BaseModel):
         Studio, on_delete=models.CASCADE, related_name="play_events"
     )
     track = models.ForeignKey(
-        "media.Track", on_delete=models.SET_NULL, null=True, related_name="play_events"
+        "medias.Track", on_delete=models.SET_NULL, null=True, related_name="play_events"
     )
 
     started_at = models.DateTimeField(db_index=True)

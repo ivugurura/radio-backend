@@ -47,7 +47,7 @@ class Track(BaseModel):
 
     processed_storage_key = models.CharField(max_length=512, blank=True)
     upload_session = models.ForeignKey(
-        "media.UploadSession",
+        "medias.UploadSession",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

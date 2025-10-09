@@ -15,10 +15,10 @@ class TranscodeJob(BaseModel):
         "studio.Studio", on_delete=models.CASCADE, related_name="transcode_jobs"
     )
     track = models.ForeignKey(
-        "media.Track", on_delete=models.CASCADE, related_name="transcode_jobs"
+        "medias.Track", on_delete=models.CASCADE, related_name="transcode_jobs"
     )
     upload_session = models.ForeignKey(
-        "media.UploadSession",
+        "medias.UploadSession",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

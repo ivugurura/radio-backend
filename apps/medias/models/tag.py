@@ -20,7 +20,7 @@ class Tag(BaseModel):
 
 
 class TrackTag(BaseModel):
-    track = models.ForeignKey("media.Track", on_delete=models.CASCADE)
+    track = models.ForeignKey("medias.Track", on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     relevance = models.FloatField(default=1.0)
 
