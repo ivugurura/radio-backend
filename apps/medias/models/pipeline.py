@@ -12,13 +12,13 @@ class TranscodeJob(BaseModel):
         CANCELED = "CANCELED"
 
     studio = models.ForeignKey(
-        "apps.studio.Studio", on_delete=models.CASCADE, related_name="transcode_jobs"
+        "studio.Studio", on_delete=models.CASCADE, related_name="transcode_jobs"
     )
     track = models.ForeignKey(
-        "apps.media.Track", on_delete=models.CASCADE, related_name="transcode_jobs"
+        "media.Track", on_delete=models.CASCADE, related_name="transcode_jobs"
     )
     upload_session = models.ForeignKey(
-        "apps.media.UploadSession",
+        "media.UploadSession",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

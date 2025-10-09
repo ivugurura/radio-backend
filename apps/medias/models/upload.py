@@ -10,7 +10,7 @@ class UploadSession(BaseModel):
         API = "API"
 
     studio = models.ForeignKey(
-        "apps.studio.Studio", on_delete=models.CASCADE, related_name="upload_sessions"
+        "studio.Studio", on_delete=models.CASCADE, related_name="upload_sessions"
     )
     original_filename = models.CharField(max_length=255)
     size_bytes = models.BigIntegerField(null=True, blank=True)

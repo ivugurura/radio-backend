@@ -7,7 +7,7 @@ from .base import Studio
 
 class Playlist(BaseModel):
     studio = models.ForeignKey(
-        "apps.studio.Studio", on_delete=models.CASCADE, related_name="playlists"
+        "studio.Studio", on_delete=models.CASCADE, related_name="playlists"
     )
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
@@ -30,7 +30,7 @@ class PlaylistItem(BaseModel):
         Playlist, on_delete=models.CASCADE, related_name="items"
     )
     track = models.ForeignKey(
-        "apps.media.Track", on_delete=models.CASCADE, related_name="playlist_items"
+        "media.Track", on_delete=models.CASCADE, related_name="playlist_items"
     )
 
     position = models.PositiveIntegerField()

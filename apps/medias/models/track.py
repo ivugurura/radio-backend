@@ -13,7 +13,7 @@ class Track(BaseModel):
         ARCHIVED = "ARCHIVED"
 
     studio = models.ForeignKey(
-        "apps.studio.Studio", on_delete=models.CASCADE, related_name="tracks"
+        "studio.Studio", on_delete=models.CASCADE, related_name="tracks"
     )
 
     title = models.CharField(max_length=255, blank=True)
@@ -47,7 +47,7 @@ class Track(BaseModel):
 
     processed_storage_key = models.CharField(max_length=512, blank=True)
     upload_session = models.ForeignKey(
-        "apps.media.UploadSession",
+        "media.UploadSession",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

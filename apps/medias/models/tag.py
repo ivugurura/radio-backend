@@ -5,7 +5,7 @@ from config.model import BaseModel
 
 class Tag(BaseModel):
     studio = models.ForeignKey(
-        "apps.studio.Studio", on_delete=models.CASCADE, related_name="tags"
+        "studio.Studio", on_delete=models.CASCADE, related_name="tags"
     )
     name = models.CharField(max_length=64)
     is_system = models.BooleanField(default=False)
@@ -20,7 +20,7 @@ class Tag(BaseModel):
 
 
 class TrackTag(BaseModel):
-    track = models.ForeignKey("apps.media.Track", on_delete=models.CASCADE)
+    track = models.ForeignKey("media.Track", on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
     relevance = models.FloatField(default=1.0)
 
