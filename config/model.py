@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from d2dstore.manager import BaseManager
+from config.manager import BaseManager
 
 
 class BaseModel(models.Model):
