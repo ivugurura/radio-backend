@@ -30,7 +30,10 @@ class PlaylistItem(BaseModel):
         Playlist, on_delete=models.CASCADE, related_name="items"
     )
     track = models.ForeignKey(
-        "medias.Track", on_delete=models.CASCADE, null=True, related_name="playlist_items"
+        "medias.Track",
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="playlist_items",
     )
 
     position = models.PositiveIntegerField()
