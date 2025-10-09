@@ -42,9 +42,9 @@ INSTALLED_APPS = [
     "graphene_django",
     "django_filters",
     # Apps
-    "apps.media",
-    "apps.studio",
     "apps.users",
+    "apps.studio",
+    "apps.medias",
 ]
 
 MIDDLEWARE = [
