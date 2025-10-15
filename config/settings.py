@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     # Third-party
     "graphene_django",
     "django_filters",
+    'rest_framework',
+	'rest_framework.authtoken',
     # Apps
     "apps.users",
     "apps.studio",
