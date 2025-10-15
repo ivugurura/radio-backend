@@ -33,25 +33,25 @@ class RegisterUser(graphene.Mutation):
         return RegisterUser(user=user, token=payload)
 
 
-class CustomLogin(graphene.Mutation):
+class LoginUser(graphene.Mutation):
     class Arguments:
-        username = graphene.String(required=True)
+        email = graphene.String(required=True)
         password = graphene.String(required=True)
 
     user = graphene.Field(UserType)
     token = graphene.String()
     rest_token = graphene.String()
 
-    def mutate(self, info, username, password):
-        user = authenticate(username=username, password=password)
+    def mutate(self, info, email, password):
+        user = authenticate(username=email, password=password)
         if not user:
             raise Exception("Invalid credentials")
         token = graphql_jwt.shortcuts.get_token(user)
         rest_payload = Token.objects.get_or_create(user=user)
 
-        return CustomLogin(user=user, token=token, rest_token=rest_payload[0])
+        return LoginUser(user=user, token=token, rest_token=rest_payload[0])
 
 
 class UserMutations(graphene.ObjectType):
     register_user = RegisterUser.Field()
-    custom_login = CustomLogin.Field()
+    login_user = LoginUser.Field()
