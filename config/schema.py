@@ -1,9 +1,11 @@
-import accounts.schema as accounts_schema
 import graphene
+
+from apps.users.schema.mutations import UserMutations
+from apps.users.schema.queries import UserQuery
 
 
 class Query(
-    accounts_schema.Query,
+    UserQuery,
     graphene.ObjectType,
 ):
     # Root-level query composition
@@ -14,7 +16,7 @@ class Query(
 
 
 class Mutation(
-    accounts_schema.Mutation,
+    UserMutations,
     graphene.ObjectType,
 ):
     pass
