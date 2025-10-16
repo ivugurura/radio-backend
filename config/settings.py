@@ -28,8 +28,8 @@ ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()
 ] or ["localhost"]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['authorization','content-type']
-CORS_ALLOW_METHODS = ['GET','POST','OPTIONS']
+CORS_ALLOW_HEADERS = ['authorization', 'content-type']
+CORS_ALLOW_METHODS = ['GET', 'POST', 'OPTIONS']
 
 
 # Application definition
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     "graphene_django",
     "django_filters",
     'rest_framework',
-	'rest_framework.authtoken',
+    'rest_framework.authtoken',
     # Apps
     "apps.users",
     "apps.studio",
