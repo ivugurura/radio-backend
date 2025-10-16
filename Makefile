@@ -1,11 +1,16 @@
-# .PHONY: run fmt test
+# Makefile
+.PHONY: run fmt fmt-check test
 
 run:
-\tpython manage.py runserver
+	python manage.py runserver
 
 fmt:
-\tblack .
-\tisort .
+	python -m isort .
+	python -m black .
 
-# test:
-# \tpytest -q
+fmt-check:
+	python -m isort --check-only .
+	python -m black --check .
+
+test:
+	pytest -q

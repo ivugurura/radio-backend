@@ -1,0 +1,17 @@
+# File: `pyproject.toml`
+[tool.black]
+line-length = 88
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["apps"]
+multi_line_output = 3
+
+[tool.ruff]
+line-length = 88
+# enable common rule sets; adjust as needed
+select = ["E", "F", "W", "C", "B", "I", "D"]
+ignore = ["E501"]
+exclude = ["__pycache__", ".venv", "venv", "build", "dist"]

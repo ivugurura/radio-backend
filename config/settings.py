@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import datetime
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,9 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "INSECURE-CHANGE-ME")
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ALLOWED_HOSTS = [
+ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()
 ] or ["localhost"]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ['authorization', 'content-type']
+CORS_ALLOW_METHODS = ['GET', 'POST', 'OPTIONS']
 
 
 # Application definition
@@ -39,6 +44,12 @@ INSTALLED_APPS = [
     # Third-party
     "graphene_django",
     "django_filters",
+    'rest_framework',
+    'rest_framework.authtoken',
+    # Apps
+    "apps.users",
+    "apps.studio",
+    "apps.medias",
 ]
 
 MIDDLEWARE = [
@@ -131,6 +142,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+AUTH_USER_MODEL = "users.User"
+
 GRAPHENE = {
     "SCHEMA": "config.schema.schema",
     "MIDDLEWARE": [
@@ -138,7 +151,21 @@ GRAPHENE = {
     ],
 }
 
+GRAPHQL_JWT = {
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_EXPIRATION_DELTA": datetime.timedelta(minutes=30),
+    "JWT_REFRESH_EXPIRATION_DELTA": datetime.timedelta(days=7),
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,  # allows refresh token usage
+    # Optional: rotate tokens
+    # "JWT_ROTATE_REFRESH_TOKENS": True,
+}
+
 AUTHENTICATION_BACKENDS = [
     "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
