@@ -7,6 +7,7 @@ from graphql_jwt.decorators import login_required
 from apps.medias.models import UploadSession, Track
 from apps.medias.services.upload import init_upload, ensure_upload_token, finalize_upload
 from apps.studio.models import Studio
+from apps.medias.tasks import start_pipeline_for_upload
 
 
 class RequestUpload(graphene.Mutation):
@@ -39,7 +40,8 @@ class RequestUpload(graphene.Mutation):
             studio=studio,
             title=file_name,
             state=Track.State.UPLOADING,
-            content_hash=checksum_sha256 or hashlib.sha256(f"{up.id}:{file_name}".encode()).hexdigest(),
+            content_hash=checksum_sha256 or hashlib.sha256(
+                f"{up.id}:{file_name}".encode()).hexdigest(),
             upload_session=up,
         )
         init_upload(studio, up)
@@ -51,6 +53,7 @@ class RequestUpload(graphene.Mutation):
             upload_token=token,
             track_id=track.id,
         )
+
 
 class FinalizeUpload(graphene.Mutation):
     class Arguments:
@@ -71,6 +74,7 @@ class FinalizeUpload(graphene.Mutation):
         finalize_upload(upload)
         upload.finalized = True
         upload.save(update_fields=["finalized", "updated_at"])
+        start_pipeline_for_upload.delay(track.id)
         return FinalizeUpload(ok=True, track_id=track.id)
 
 
