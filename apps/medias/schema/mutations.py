@@ -71,4 +71,9 @@ class FinalizeUpload(graphene.Mutation):
         finalize_upload(upload)
         upload.finalized = True
         upload.save(update_fields=["finalized", "updated_at"])
-        return FinalizeUpload(success=True)
+        return FinalizeUpload(ok=True, track_id=track.id)
+
+
+class MediasMutations(graphene.ObjectType):
+    request_upload = RequestUpload.Field()
+    finalize_upload = FinalizeUpload.Field()
