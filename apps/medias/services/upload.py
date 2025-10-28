@@ -55,7 +55,7 @@ def append_chunk(upload: UploadSession, start:int, end: int, total:int, body:io.
     new_size = temp_abs.stat().st_size
     upload.bytes_received = new_size
     upload.size_bytes = total
-    upload.save(update_fields=["size_bytes", "updated_at"])
+    upload.save(update_fields=["bytes_received", "size_bytes", "updated_at"])
     return new_size
 
 def finalize_upload(upload: UploadSession) -> Path:
