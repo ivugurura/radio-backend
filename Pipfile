@@ -13,6 +13,8 @@ django-graphql-jwt = "==0.4.0"
 argon2-cffi = "==25.1.0"
 djangorestframework = "==3.16.1"
 django-cors-headers = "==4.9.0"
+celery = "==5.5.3"
+django-redis = "==6.0.0"
 
 [dev-packages]
 black = "==25.9.0"
