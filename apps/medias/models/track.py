@@ -45,7 +45,8 @@ class Track(BaseModel):
         related_name="duplicates",
     )
 
-    processed_storage_key = models.CharField(max_length=512, blank=True)
+    processed_rel_path = models.CharField(max_length=512, blank=True)
+    error_message = models.TextField(blank=True)
     upload_session = models.ForeignKey(
         "medias.UploadSession",
         null=True,
