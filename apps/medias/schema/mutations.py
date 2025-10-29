@@ -8,6 +8,10 @@ from apps.medias.models import UploadSession, Track
 from apps.medias.services.upload import init_upload, ensure_upload_token, finalize_upload
 from apps.studio.models import Studio
 from apps.medias.tasks import start_pipeline_for_upload
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class RequestUpload(graphene.Mutation):
@@ -74,7 +78,9 @@ class FinalizeUpload(graphene.Mutation):
         finalize_upload(upload)
         upload.finalized = True
         upload.save(update_fields=["finalized", "updated_at"])
+        logger.info("Finalizing upload %s; scheduling start_pipeline_for_upload for track %s", upload.id, track.id)
         start_pipeline_for_upload.delay(track.id)
+        logger.info("Called start_pipeline_for_upload.delay for %s", track.id)
         return FinalizeUpload(ok=True, track_id=track.id)
 
 
