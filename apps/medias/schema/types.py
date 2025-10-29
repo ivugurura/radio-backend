@@ -6,7 +6,7 @@ class TrackType(DjangoObjectType):
     class Meta:
         model = Track
         fields = (
-            "id","title","artist","album","genre","state",
+            "id","title","artist","album","genre", "year", "state",
             "duration_seconds","bitrate_kbps","processed_rel_path",
             "created_at","updated_at",
         )
@@ -19,3 +19,11 @@ class UploadSessionType(DjangoObjectType):
 class TrackConnection(graphene.relay.Connection):
     class Meta:
         node = TrackType
+
+    total_count = graphene.Int()
+
+    def resolve_total_count(self, info, **kwargs):
+        try:
+            return self.iterable.count()
+        except Exception:
+            return 0

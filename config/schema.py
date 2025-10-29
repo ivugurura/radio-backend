@@ -2,12 +2,14 @@ import graphene
 import graphql_jwt
 
 from apps.medias.schema.mutations import MediasMutations
+from apps.medias.schema.queries import MediasQuery
 from apps.users.schema.mutations import UserMutations
 from apps.users.schema.queries import UserQuery
 
 
 class Query(
     UserQuery,
+    MediasQuery,
     graphene.ObjectType,
 ):
     # Root-level query composition
