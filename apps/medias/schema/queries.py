@@ -19,4 +19,3 @@ class MediasQuery(graphene.ObjectType):
         if search:
             qs = qs.filter(title__icontains=search)
         return qs
-

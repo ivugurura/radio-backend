@@ -1,6 +1,11 @@
 import re
 
-from django.http import HttpResponseNotAllowed, HttpResponseForbidden, HttpResponseBadRequest, HttpResponse
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseNotAllowed,
+)
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
@@ -8,6 +13,7 @@ from apps.medias.models import UploadSession
 from apps.medias.services.upload import append_chunk
 
 CONTENT_RANGE_RE = re.compile(r"bytes (\d+)-(\d+)/(\d+)")
+
 
 @csrf_exempt
 def upload_chunk_view(request, upload_id):

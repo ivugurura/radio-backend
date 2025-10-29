@@ -1,16 +1,19 @@
 import hashlib
+import logging
 
 import graphene
 from django.db import transaction
 from graphql_jwt.decorators import login_required
 
-from apps.medias.models import UploadSession, Track
+from apps.medias.models import Track, UploadSession
 from apps.medias.services.delete import delete_track_files
-from apps.medias.services.upload import init_upload, ensure_upload_token, finalize_upload
-from apps.studio.models import Studio
+from apps.medias.services.upload import (
+    ensure_upload_token,
+    finalize_upload,
+    init_upload,
+)
 from apps.medias.tasks import start_pipeline_for_upload
-import logging
-
+from apps.studio.models import Studio
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,9 @@ class RequestUpload(graphene.Mutation):
     @staticmethod
     @transaction.atomic
     @login_required
-    def mutate(self, info, studio_slug, file_name, size_bytes, mime_type, checksum_sha256=None):
+    def mutate(
+        self, info, studio_slug, file_name, size_bytes, mime_type, checksum_sha256=None
+    ):
         user = info.context.user
         studio = Studio.objects.get(slug=studio_slug, is_active=True)
 
@@ -45,8 +50,8 @@ class RequestUpload(graphene.Mutation):
             studio=studio,
             title=file_name,
             state=Track.State.UPLOADING,
-            content_hash=checksum_sha256 or hashlib.sha256(
-                f"{up.id}:{file_name}".encode()).hexdigest(),
+            content_hash=checksum_sha256
+            or hashlib.sha256(f"{up.id}:{file_name}".encode()).hexdigest(),
             upload_session=up,
         )
         init_upload(studio, up)
@@ -79,7 +84,11 @@ class FinalizeUpload(graphene.Mutation):
         finalize_upload(upload)
         upload.finalized = True
         upload.save(update_fields=["finalized", "updated_at"])
-        logger.info("Finalizing upload %s; scheduling start_pipeline_for_upload for track %s", upload.id, track.id)
+        logger.info(
+            "Finalizing upload %s; scheduling start_pipeline_for_upload for track %s",
+            upload.id,
+            track.id,
+        )
         start_pipeline_for_upload.delay(track.id)
         logger.info("Called start_pipeline_for_upload.delay for %s", track.id)
         return FinalizeUpload(ok=True, track_id=track.id)
@@ -100,7 +109,9 @@ class DeleteTrack(graphene.Mutation):
             raise Exception("auth required")
 
         try:
-            track = Track.objects.select_related("studio", "upload_session").get(id=track_id)
+            track = Track.objects.select_related("studio", "upload_session").get(
+                id=track_id
+            )
         except Track.DoesNotExist:
             # idempotent OK (already deleted)
             return DeleteTrack(ok=True)

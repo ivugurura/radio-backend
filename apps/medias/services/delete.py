@@ -1,9 +1,13 @@
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
+
 from django.conf import settings
+
 from apps.medias.models import Track
 from apps.medias.services.paths import studio_paths
+
 
 def _safe_unlink(p: Optional[Path]) -> None:
     try:
@@ -12,6 +16,7 @@ def _safe_unlink(p: Optional[Path]) -> None:
     except Exception:
         # Intentionally ignore file removal errors, we don't want to block deletion
         pass
+
 
 def delete_track_files(track: Track) -> None:
     """
@@ -32,6 +37,8 @@ def delete_track_files(track: Track) -> None:
         _safe_unlink(base / up.temp_rel_path)
 
     # Processing artifact – try to infer path using bitrate (fallback to settings)
-    target_kbps = track.bitrate_kbps or getattr(settings, "DEFAULT_TARGET_BITRATE_KBPS", 128)
+    target_kbps = track.bitrate_kbps or getattr(
+        settings, "DEFAULT_TARGET_BITRATE_KBPS", 128
+    )
     paths = studio_paths(track.studio, target_kbps)
     _safe_unlink(paths.processing / f"{track.id}.mp3")

@@ -9,21 +9,23 @@ GraphQL finalize mutation.
 - Save extracted tags to Track fields if not already set or if they are empty.
 - Preserve metadata during transcoding with ffmpeg -map_metadata 0.
 """
+
 from __future__ import annotations
+
 import json
 import logging
 import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
 from apps.medias.models import Track
-from apps.medias.services.paths import studio_paths, relpath_from_root
+from apps.medias.services.paths import relpath_from_root, studio_paths
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,7 @@ def resolve_bin(name: str, configured: str | None) -> str:
     raise RuntimeError(
         f"{name} not found. Set {name.upper()}_PATH to an absolute path or install it and ensure it is on PATH."
     )
+
 
 def ffprobe_json(ffprobe: str, in_path: Path) -> Dict:
     """Run ffprobe and return parsed JSON with format and streams info."""
@@ -118,6 +121,7 @@ def extract_tags_from_probe(data: Dict) -> Tuple[float, Dict[str, str]]:
 
     return duration, tags
 
+
 @shared_task(bind=True, max_retries=2, soft_time_limit=60 * 60)
 def start_pipeline_for_upload(self, track_id: str):
     """
@@ -128,7 +132,9 @@ def start_pipeline_for_upload(self, track_id: str):
         start_pipeline_for_upload.delay(str(track.id))
     """
     try:
-        track = Track.objects.select_related("studio", "upload_session").get(id=track_id)
+        track = Track.objects.select_related("studio", "upload_session").get(
+            id=track_id
+        )
     except Track.DoesNotExist:
         logger.error("start_pipeline_for_upload: track not found: %s", track_id)
         return
@@ -136,7 +142,10 @@ def start_pipeline_for_upload(self, track_id: str):
     studio = track.studio
     up = track.upload_session
     if not up or not up.temp_rel_path:
-        logger.error("start_pipeline_for_upload: missing upload session or temp path for track=%s", track_id)
+        logger.error(
+            "start_pipeline_for_upload: missing upload session or temp path for track=%s",
+            track_id,
+        )
         track.state = Track.State.FAILED
         track.save(update_fields=["state", "updated_at"])
         return
@@ -152,7 +161,9 @@ def start_pipeline_for_upload(self, track_id: str):
         track.save(update_fields=["state", "error_message", "updated_at"])
         return
 
-    target_kbps = getattr(studio, "default_bitrate_kbps", None) or getattr(settings, "DEFAULT_TARGET_BITRATE_KBPS", 128)
+    target_kbps = getattr(studio, "default_bitrate_kbps", None) or getattr(
+        settings, "DEFAULT_TARGET_BITRATE_KBPS", 128
+    )
 
     paths = studio_paths(studio, target_kbps)
     work_in = Path(settings.RADIO_STUDIOS_ROOT) / up.temp_rel_path
@@ -232,7 +243,12 @@ def start_pipeline_for_upload(self, track_id: str):
         ff = subprocess.run(ff_cmd, capture_output=True, text=True)
 
         if ff.returncode != 0:
-            logger.error("ffmpeg failed for %s: code=%s stderr=%s", work_in, ff.returncode, ff.stderr[-4000:])
+            logger.error(
+                "ffmpeg failed for %s: code=%s stderr=%s",
+                work_in,
+                ff.returncode,
+                ff.stderr[-4000:],
+            )
             track.state = Track.State.FAILED
             track.error_message = (ff.stderr or "")[:4000]
             track.save(update_fields=["state", "error_message", "updated_at"])
@@ -247,7 +263,15 @@ def start_pipeline_for_upload(self, track_id: str):
         track.state = Track.State.READY
         track.processed_rel_path = relpath_from_root(final_out)
         track.updated_at = timezone.now()
-        track.save(update_fields=["duration_seconds", "bitrate_kbps", "state", "processed_rel_path", "updated_at"])
+        track.save(
+            update_fields=[
+                "duration_seconds",
+                "bitrate_kbps",
+                "state",
+                "processed_rel_path",
+                "updated_at",
+            ]
+        )
 
         # Cleanup incoming temp file
         try:
@@ -255,11 +279,15 @@ def start_pipeline_for_upload(self, track_id: str):
         except Exception as e:
             logger.debug("cleanup incoming failed: %s", e)
 
-        logger.info("Processing finished for track %s (studio=%s)", track_id, studio.slug)
+        logger.info(
+            "Processing finished for track %s (studio=%s)", track_id, studio.slug
+        )
 
     except Exception as exc:
         # Retry with exponential backoff for transient errors
-        logger.exception("Unhandled error in start_pipeline_for_upload for %s", track_id)
+        logger.exception(
+            "Unhandled error in start_pipeline_for_upload for %s", track_id
+        )
         track.state = Track.State.FAILED
         track.error_message = str(exc)[:4096]
         track.save(update_fields=["state", "error_message", "updated_at"])

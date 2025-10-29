@@ -3,7 +3,9 @@ Celery app configuration for the Django project.
 
 Place this file at config/celery.py and ensure config/__init__.py imports the `celery_app`.
 """
+
 import os
+
 from celery import Celery
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
