@@ -21,10 +21,16 @@ from django.views.decorators.csrf import csrf_exempt
 from graphene_django.views import GraphQLView
 
 from apps.medias.views import upload_chunk_view
+from apps.studio.views import studio_playlist
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Enable GraphiQL in dev
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
-    path("api/uploads/<uuid:upload_id>/chunk", upload_chunk_view, name="upload-chunk"),
+    # API endpoints
+    path("api/uploads/<uuid:upload_id>/chunk",
+         upload_chunk_view, name="upload-chunk"),
+    path("api/studios/<str:studio_id>/playlist",
+         studio_playlist, name="studio-playlist"),
+
 ]

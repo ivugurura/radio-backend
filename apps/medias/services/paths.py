@@ -19,14 +19,10 @@ class StudioPaths:
 
 def studio_paths(studio: Studio, bitrate_kbps: int | None = None) -> StudioPaths:
     root = Path(settings.RADIO_STUDIOS_ROOT) / studio.slug
+    kbks = str(bitrate_kbps or settings.DEFAULT_TARGET_BITRATE_KBPS)
     incoming = root / 'incoming'
     processing = root / 'processing'
-    library_mp3 = (
-        root
-        / 'library'
-        / 'mp3'
-        / str(bitrate_kbps or settings.DEFAULT_TARGET_BITRATE_KBPS)
-    )
+    library_mp3 = root / 'library' / 'mp3' / kbks
     waveform = root / 'waveform'
     artwork = root / 'artwork'
     for p in (incoming, processing, library_mp3, waveform, artwork):

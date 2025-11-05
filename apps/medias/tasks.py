@@ -136,7 +136,8 @@ def start_pipeline_for_upload(self, track_id: str):
             id=track_id
         )
     except Track.DoesNotExist:
-        logger.error("start_pipeline_for_upload: track not found: %s", track_id)
+        logger.error(
+            "start_pipeline_for_upload: track not found: %s", track_id)
         return
 
     studio = track.studio
@@ -153,7 +154,8 @@ def start_pipeline_for_upload(self, track_id: str):
     # Resolve ffmpeg/ffprobe robustly
     try:
         ffmpeg = resolve_bin("ffmpeg", getattr(settings, "FFMPEG_PATH", None))
-        ffprobe = resolve_bin("ffprobe", getattr(settings, "FFPROBE_PATH", None))
+        ffprobe = resolve_bin("ffprobe", getattr(
+            settings, "FFPROBE_PATH", None))
     except RuntimeError as e:
         logger.error("Binary resolution error: %s", e)
         track.state = Track.State.FAILED
@@ -258,10 +260,12 @@ def start_pipeline_for_upload(self, track_id: str):
         work_out.replace(final_out)
 
         # Update Track
+        processed_path = relpath_from_root(
+            final_out).replace(studio.slug + "/", "")
         track.duration_seconds = duration
         track.bitrate_kbps = target_kbps
         track.state = Track.State.READY
-        track.processed_rel_path = relpath_from_root(final_out)
+        track.processed_rel_path = processed_path
         track.updated_at = timezone.now()
         track.save(
             update_fields=[
