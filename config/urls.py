@@ -30,7 +30,7 @@ urlpatterns = [
     # API endpoints
     path("api/uploads/<uuid:upload_id>/chunk",
          upload_chunk_view, name="upload-chunk"),
-    path("api/studios/<str:studio_id>/playlist",
+    path("api/studios/<str:studio_slug>/playlist",
          studio_playlist, name="studio-playlist"),
 
 ]
