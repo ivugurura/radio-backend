@@ -19,8 +19,15 @@ class UploadSession(BaseModel):
         max_length=16, choices=Source.choices, default=Source.DIRECT
     )
     storage_incoming_key = models.CharField(max_length=512, blank=True)
+    # Upload lifecycle
     finalized = models.BooleanField(default=False)
     error_message = models.TextField(blank=True)
+    # Local disk upload state
+    temp_rel_path = models.CharField(max_length=512, blank=True)
+    bytes_received = models.BigIntegerField(default=0)
+
+    # Upload authorization (for PUT chunks)
+    upload_token = models.CharField(max_length=64, blank=True)
 
     def __str__(self):
         return f"{self.original_filename} ({self.id})"
