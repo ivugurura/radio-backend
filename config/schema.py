@@ -1,3 +1,4 @@
+from apps.studio.schema.queries import ListenerQuery
 import graphene
 import graphql_jwt
 
@@ -10,6 +11,7 @@ from apps.users.schema.queries import UserQuery
 class Query(
     UserQuery,
     MediasQuery,
+    ListenerQuery,
     graphene.ObjectType,
 ):
     # Root-level query composition
