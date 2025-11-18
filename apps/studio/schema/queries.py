@@ -33,13 +33,14 @@ class ListenerQuery(graphene.ObjectType):
             return None
 
         now = timezone.now()
+        GRACE_PERIOD = datetime.timedelta(seconds=20)
         if range == TimeRange.LAST_7_DAYS.value:
             since = now - datetime.timedelta(days=7)
         else:
             since = now - datetime.timedelta(days=1)
 
         # Active now = open sessions (ended_at is null)
-        active_now = ListenerSession.objects.filter(studio=studio, ended_at__isnull=True).count()
+        active_now = ListenerSession.objects.filter(studio=studio, last_seen__gte=now - GRACE_PERIOD).count()
 
         # Peaks and minutes from buckets (prefer MINUTE granularity)
         minute_buckets = ListenerStatBucket.objects.filter(

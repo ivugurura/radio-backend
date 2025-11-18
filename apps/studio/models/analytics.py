@@ -34,6 +34,8 @@ class ListenerSession(BaseModel):
 
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Updated on every ingest/heartbeat to reflect the latest activity
+    last_seen = models.DateTimeField(auto_now=True, db_index=True)
 
     ip_hash = models.CharField(max_length=64, blank=True)
     user_agent = models.CharField(max_length=255, blank=True)

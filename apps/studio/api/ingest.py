@@ -1,3 +1,5 @@
+import datetime
+from django.utils import timezone
 import json
 import uuid
 
@@ -24,18 +26,21 @@ def server_response(message: str, status_code: int = 200) -> JsonResponse:
     """
     return JsonResponse({"message": message}, status=status_code)
 
-def _parse_iso(dt_str:str):
+
+def _parse_iso(dt_str: str):
     if dt_str is None:
         return None
     return parse_datetime(dt_str)
 
-def _bearer_token(req:HttpRequest)->str:
+
+def _bearer_token(req: HttpRequest) -> str:
     auth_header = req.META.get("HTTP_AUTHORIZATION", "")
     if auth_header.startswith("Bearer "):
         return auth_header[7:]
     return ""
 
-def _get_studio(studio_slug_or_id:str):
+
+def _get_studio(studio_slug_or_id: str):
     try:
         if len(studio_slug_or_id) == 36:  # Assuming UUID length
             studio = Studio.objects.get(id=studio_slug_or_id)
@@ -44,6 +49,7 @@ def _get_studio(studio_slug_or_id:str):
         return studio
     except Studio.DoesNotExist:
         return None
+
 
 @csrf_exempt
 @require_POST
@@ -82,6 +88,9 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
     updated_sessions = 0
     upserted_buckets = 0
 
+    now = timezone.now()
+    GRACE_PERIOD = datetime.timedelta(seconds=20)
+
     with transaction.atomic():
         # Upsert ListenerSession by explicit UUID (client-provided)
         for s in sessions:
@@ -113,7 +122,8 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                 defaults["started_at"] = started_at
             if ended_at:
                 defaults["ended_at"] = ended_at
-            session, created = ListenerSession.objects.update_or_create(pk=s_id_uuid, defaults=defaults)
+            session, created = ListenerSession.objects.update_or_create(
+                pk=s_id_uuid, defaults=defaults)
             if created:
                 inserted_sessions += 1
             else:
@@ -127,8 +137,11 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                         setattr(session, k, new_val)
                         changed = True
                 if changed:
-                    session.save()
-                    updated_sessions += 1
+                    session.save(update_fields=list(defaults.keys()))
+                updated_sessions += 1
+
+            # Always reflesh last_seen to now on any heartbeat
+            ListenerSession.objects.filter(pk=session.pk).update(last_seen=now)
 
         # Upsert ListenerStatBucket by unique (studio, interval, bucket_start)
         for b in buckets:
@@ -163,13 +176,15 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     merged = dict(obj.countries_json or {})
                     for country, count in countries.items():
                         try:
-                            merged[country] = int(merged.get(country, 0)) + int(count or 0)
+                            merged[country] = int(merged.get(
+                                country, 0)) + int(count or 0)
                         except Exception:
                             continue
                     obj.countries_json = merged
                     updated = True
                 if updated:
-                    obj.save(update_fields=["active_peak", "listener_minutes", "countries_json"])
+                    obj.save(update_fields=[
+                             "active_peak", "listener_minutes", "countries_json"])
             upserted_buckets += 1
 
-    return JsonResponse({"ok":True, "studio":str(studio.pk), "inserted_sessions": inserted_sessions, "updated_sessions": updated_sessions, "upserted_buckets": upserted_buckets}, status=200)
+    return JsonResponse({"ok": True, "studio": str(studio.pk), "inserted_sessions": inserted_sessions, "updated_sessions": updated_sessions, "upserted_buckets": upserted_buckets}, status=200)
