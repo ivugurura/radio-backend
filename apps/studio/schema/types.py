@@ -2,7 +2,7 @@ import graphene
 
 
 class CountryCount(graphene.ObjectType):
-    code = graphene.String(required=True)   # ISO-3166 alpha-2 (e.g., "RW")
+    code = graphene.String(required=True)  # ISO-3166 alpha-2 (e.g., "RW")
     count = graphene.Int(required=True)
 
 

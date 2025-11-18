@@ -1,9 +1,9 @@
-from apps.studio.schema.queries import ListenerQuery
 import graphene
 import graphql_jwt
 
 from apps.medias.schema.mutations import MediasMutations
 from apps.medias.schema.queries import MediasQuery
+from apps.studio.schema.queries import ListenerQuery
 from apps.users.schema.mutations import UserMutations
 from apps.users.schema.queries import UserQuery
 

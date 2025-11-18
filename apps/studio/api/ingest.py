@@ -1,16 +1,16 @@
 import datetime
-from django.utils import timezone
 import json
 import uuid
 
 from django.conf import settings
 from django.db import transaction
-from django.http import JsonResponse, HttpRequest
+from django.http import HttpRequest, JsonResponse
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.studio.models import Studio, ListenerSession, ListenerStatBucket
+from apps.studio.models import ListenerSession, ListenerStatBucket, Studio
 
 
 def server_response(message: str, status_code: int = 200) -> JsonResponse:
@@ -123,7 +123,8 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
             if ended_at:
                 defaults["ended_at"] = ended_at
             session, created = ListenerSession.objects.update_or_create(
-                pk=s_id_uuid, defaults=defaults)
+                pk=s_id_uuid, defaults=defaults
+            )
             if created:
                 inserted_sessions += 1
             else:
@@ -157,12 +158,14 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
             countries = b.get("countries_json", {})
 
             obj, created = ListenerStatBucket.objects.update_or_create(
-                studio=studio, interval=interval, bucket_start=bucket_start,
+                studio=studio,
+                interval=interval,
+                bucket_start=bucket_start,
                 defaults={
                     "active_peak": active_peak,
                     "listener_minutes": listener_minutes,
                     "countries_json": countries,
-                }
+                },
             )
             if not created:
                 updated = False
@@ -176,15 +179,30 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     merged = dict(obj.countries_json or {})
                     for country, count in countries.items():
                         try:
-                            merged[country] = int(merged.get(
-                                country, 0)) + int(count or 0)
+                            merged[country] = int(merged.get(country, 0)) + int(
+                                count or 0
+                            )
                         except Exception:
                             continue
                     obj.countries_json = merged
                     updated = True
                 if updated:
-                    obj.save(update_fields=[
-                             "active_peak", "listener_minutes", "countries_json"])
+                    obj.save(
+                        update_fields=[
+                            "active_peak",
+                            "listener_minutes",
+                            "countries_json",
+                        ]
+                    )
             upserted_buckets += 1
 
-    return JsonResponse({"ok": True, "studio": str(studio.pk), "inserted_sessions": inserted_sessions, "updated_sessions": updated_sessions, "upserted_buckets": upserted_buckets}, status=200)
+    return JsonResponse(
+        {
+            "ok": True,
+            "studio": str(studio.pk),
+            "inserted_sessions": inserted_sessions,
+            "updated_sessions": updated_sessions,
+            "upserted_buckets": upserted_buckets,
+        },
+        status=200,
+    )
