@@ -22,6 +22,7 @@ from graphene_django.views import GraphQLView
 
 from apps.medias.views import upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
+from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.views import studio_playlist
 
 urlpatterns = [
@@ -29,7 +30,8 @@ urlpatterns = [
     # Enable GraphiQL in dev
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
     # API endpoints
-    path("api/uploads/<uuid:upload_id>/chunk", upload_chunk_view, name="upload-chunk"),
+    path("api/uploads/<uuid:upload_id>/chunk",
+         upload_chunk_view, name="upload-chunk"),
     path(
         "api/studios/<str:studio_slug>/playlist",
         studio_playlist,
@@ -38,6 +40,11 @@ urlpatterns = [
     path(
         "api/studios/<str:studio_slug>/listener-events",
         ingest_listener_events,
-        name="studio-listener-ingest",
+        name="studio-listener-events",
+    ),
+    path(
+        "api/studios/<str:studio_slug>/play-events",
+        ingest_play_events,
+        name="studio-play-events",
     ),
 ]

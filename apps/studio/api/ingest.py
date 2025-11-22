@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.studio.models import ListenerSession, ListenerStatBucket, Studio
+from apps.studio.services.helpers import get_studio
 
 
 def server_response(message: str, status_code: int = 200) -> JsonResponse:
@@ -40,17 +41,6 @@ def _bearer_token(req: HttpRequest) -> str:
     return ""
 
 
-def _get_studio(studio_slug_or_id: str):
-    try:
-        if len(studio_slug_or_id) == 36:  # Assuming UUID length
-            studio = Studio.objects.get(id=studio_slug_or_id)
-        else:
-            studio = Studio.objects.get(slug=studio_slug_or_id)
-        return studio
-    except Studio.DoesNotExist:
-        return None
-
-
 @csrf_exempt
 @require_POST
 def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonResponse:
@@ -77,7 +67,7 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
         payload = json.loads(request.body.decode("utf-8"))
     except Exception:
         return server_response("Invalid JSON payload", status_code=400)
-    studio = _get_studio(studio_slug)
+    studio = get_studio(studio_slug)
     if not studio:
         return server_response("Studio not found", status_code=404)
 
