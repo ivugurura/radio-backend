@@ -6,13 +6,8 @@ from graphene import Argument
 
 from apps.studio.models.analytics import ListenerSession, ListenerStatBucket
 from apps.studio.models.base import Studio
-
-from .types import CountryCount, ListenerOverview
-
-
-class TimeRange(graphene.Enum):
-    LAST_24_HOURS = "LAST_24_HOURS"
-    LAST_7_DAYS = "LAST_7_DAYS"
+from apps.studio.schema.types import CountryCount, ListenerOverview, TimeRange
+from apps.studio.services.helpers import get_studio
 
 
 class ListenerQuery(graphene.ObjectType):
@@ -28,16 +23,18 @@ class ListenerQuery(graphene.ObjectType):
         self, info, studio_id: str, range: str = "LAST_24_HOURS"
     ):
         # Resolve studio (by pk/slug/code as needed)
-        studio = None
-        try:
-            studio = Studio.objects.get(slug=studio_id)
-        except Exception:
-            try:
-                studio = Studio.objects.get(pk=studio_id)
-            except Exception:
-                studio = Studio.objects.filter(code=studio_id).first()
+        studio = get_studio(studio_id)
+        # import pdb
+        # pdb.set_trace()
         if not studio:
-            return None
+            return ListenerOverview(
+                studio_id="",
+                active_now=0,
+                peak_last_hour=0,
+                peak_last_24h=0,
+                listener_minutes_last_24h=0,
+                countries=[],
+            )
 
         now = timezone.now()
         GRACE_PERIOD = datetime.timedelta(seconds=20)
@@ -100,7 +97,7 @@ class ListenerQuery(graphene.ObjectType):
         ]
 
         return ListenerOverview(
-            studio_id=str(studio.pk),
+            studio_id=str(studio.slug),
             active_now=active_now,
             peak_last_hour=peak_last_hour,
             peak_last_24h=peak_last_24h,

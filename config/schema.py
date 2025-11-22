@@ -3,7 +3,8 @@ import graphql_jwt
 
 from apps.medias.schema.mutations import MediasMutations
 from apps.medias.schema.queries import MediasQuery
-from apps.studio.schema.queries import ListenerQuery
+from apps.studio.schema.queries.listeners import ListenerQuery
+from apps.studio.schema.queries.dashboard import DashboardQuery
 from apps.users.schema.mutations import UserMutations
 from apps.users.schema.queries import UserQuery
 
@@ -12,6 +13,7 @@ class Query(
     UserQuery,
     MediasQuery,
     ListenerQuery,
+    DashboardQuery,
     graphene.ObjectType,
 ):
     # Root-level query composition

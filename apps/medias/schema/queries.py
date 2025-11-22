@@ -2,6 +2,7 @@ import graphene
 
 from apps.medias.models import Track
 from apps.medias.schema.types import TrackConnection
+from apps.studio.services.helpers import get_studio
 
 
 class MediasQuery(graphene.ObjectType):
@@ -13,7 +14,8 @@ class MediasQuery(graphene.ObjectType):
     )
 
     def resolve_tracks(self, info, studio_slug, state=None, search=None, **kwargs):
-        qs = Track.objects.filter(studio__slug=studio_slug).order_by("-created_at")
+        studio = get_studio(studio_slug)
+        qs = Track.objects.filter(studio=studio).order_by("-created_at")
         if state:
             qs = qs.filter(state=state)
         if search:
