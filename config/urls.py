@@ -20,7 +20,7 @@ from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 from graphene_django.views import GraphQLView
 
-from apps.medias.views import upload_chunk_view
+from apps.medias.views import serve_track, upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.views import studio_playlist
@@ -47,4 +47,6 @@ urlpatterns = [
         ingest_play_events,
         name="studio-play-events",
     ),
+    path("api/studios/<str:studio_slug>/tracks/<str:track_id>",
+         serve_track, name="serve-track"),
 ]
