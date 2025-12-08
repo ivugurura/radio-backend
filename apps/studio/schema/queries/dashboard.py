@@ -203,6 +203,7 @@ class DashboardQuery(graphene.ObjectType):
 
     # -------- Current Queue --------
     def resolve_current_queue(self, info, studio_id: str, limit: int):
+        limit = 4
         studio = get_studio(studio_id)
         if not studio:
             return CurrentQueue(items=[])
@@ -245,7 +246,8 @@ class DashboardQuery(graphene.ObjectType):
                     isCurrent=current_event and ev.id == current_event.id,
                 )
             )
-
+        print("Current queue items:", len(items), limit)
+        return CurrentQueue(items=items)
         # If we have fewer than limit and can show more recent finished events:
         if len(items) < limit:
             extra = (
@@ -270,5 +272,5 @@ class DashboardQuery(graphene.ObjectType):
                         isCurrent=False,
                     )
                 )
-
+        print("Current queue items:", len(items))
         return CurrentQueue(items=items[:limit])

@@ -27,7 +27,8 @@ class RegisterUser(graphene.Mutation):
         if User.objects.filter(Q(user_name=user_name) | Q(email=email)).exists():
             raise Exception("Username already taken")
 
-        user = User.objects.create_user(user_name=user_name, email=email, **kwargs)
+        user = User.objects.create_user(
+            user_name=user_name, email=email, **kwargs)
         # Immediately issue tokens (optional)
         payload = get_token(user)
         return RegisterUser(user=user, token=payload)
@@ -49,7 +50,11 @@ class LoginUser(graphene.Mutation):
         token = graphql_jwt.shortcuts.get_token(user)
         rest_payload = Token.objects.get_or_create(user=user)
 
-        return LoginUser(user=user, token=token, rest_token=rest_payload[0])
+        return LoginUser(
+            user=user,
+            token=token,
+            rest_token=rest_payload[0]
+        )
 
 
 class UserMutations(graphene.ObjectType):
