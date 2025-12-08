@@ -24,11 +24,14 @@ from apps.medias.views import serve_track, upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.views import studio_playlist
+from apps.users.views import refresh_token_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Enable GraphiQL in dev
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
+    # Authentication endpoints
+    path("api/auth/refresh", refresh_token_view, name="refresh-token"),
     # API endpoints
     path("api/uploads/<uuid:upload_id>/chunk",
          upload_chunk_view, name="upload-chunk"),
