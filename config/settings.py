@@ -17,13 +17,11 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-RADIO_ROOT = Path(
-    os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
+RADIO_ROOT = Path(os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
 RADIO_STUDIOS_ROOT = RADIO_ROOT / "studios"
 
 # Target bitrate for normalized MP3 when publishing
-DEFAULT_TARGET_BITRATE_KBPS = int(
-    os.getenv("DEFAULT_TARGET_BITRATE_KBPS", "128"))
+DEFAULT_TARGET_BITRATE_KBPS = int(os.getenv("DEFAULT_TARGET_BITRATE_KBPS", "128"))
 
 # Upload streaming memory caps
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
@@ -197,7 +195,6 @@ PASSWORD_HASHERS = [
 
 # Celery (example)
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
-CELERY_RESULT_BACKEND = os.getenv(
-    "CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
 
 STUDIO_TOKEN = os.getenv("STUDIO_TOKEN", "")

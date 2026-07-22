@@ -27,8 +27,7 @@ class ListeningTrendPoint(graphene.ObjectType):
 
 
 class ListeningTrend(graphene.ObjectType):
-    points = graphene.List(graphene.NonNull(
-        ListeningTrendPoint), required=True)
+    points = graphene.List(graphene.NonNull(ListeningTrendPoint), required=True)
     peak = graphene.Field(ListeningTrendPoint)
 
 

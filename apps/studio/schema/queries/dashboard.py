@@ -1,24 +1,21 @@
-import os
 import datetime
 import math
-import graphene
-from django.utils import timezone
-from django.db.models import Sum, Q
+import os
 
-from apps.studio.models.analytics import (
-    ListenerStatBucket,
-    PlayEvent,
-    ListenerSession
-)
+import graphene
+from django.db.models import Q, Sum
+from django.utils import timezone
+
 from apps.medias.models import Track, UploadSession
+from apps.studio.models.analytics import ListenerSession, ListenerStatBucket, PlayEvent
 from apps.studio.models.base import Studio
 from apps.studio.schema.types import (
+    CurrentQueue,
+    ListeningSummary,
     ListeningTrend,
     ListeningTrendPoint,
-    ListeningSummary,
-    StudioCapacity,
-    CurrentQueue,
     QueueItem,
+    StudioCapacity,
     TimeRange,
 )
 from apps.studio.services.helpers import get_studio
@@ -28,8 +25,7 @@ class DashboardQuery(graphene.ObjectType):
     listening_trend = graphene.Field(
         ListeningTrend,
         studio_id=graphene.String(required=True),
-        range=graphene.Argument(
-            TimeRange, default_value=TimeRange.LAST_90_MIN),
+        range=graphene.Argument(TimeRange, default_value=TimeRange.LAST_90_MIN),
     )
     listening_summary_count = graphene.Field(
         ListeningSummary,
@@ -77,12 +73,9 @@ class DashboardQuery(graphene.ObjectType):
             ).exists()
             interval = "FIVE_MIN" if has_five else "HOUR"
 
-        buckets = (
-            ListenerStatBucket.objects.filter(
-                studio=studio, interval=interval, bucket_start__gte=since
-            )
-            .order_by("bucket_start")
-        )
+        buckets = ListenerStatBucket.objects.filter(
+            studio=studio, interval=interval, bucket_start__gte=since
+        ).order_by("bucket_start")
 
         points = []
         peak_point = None
@@ -132,7 +125,8 @@ class DashboardQuery(graphene.ObjectType):
 
         today_cnt = qs.filter(started_at__gte=today_start).count()
         yesterday_cnt = qs.filter(
-            started_at__gte=yesterday_start, started_at__lt=today_start).count()
+            started_at__gte=yesterday_start, started_at__lt=today_start
+        ).count()
         last7_cnt = qs.filter(started_at__gte=seven_days_start).count()
         last30_cnt = qs.filter(started_at__gte=thirty_days_start).count()
         prev30_cnt = qs.filter(
@@ -186,7 +180,7 @@ class DashboardQuery(graphene.ObjectType):
             )["total"]
             or 0
         )
-        disk_used_gb = float(upload_bytes) / (1024 ** 3)
+        disk_used_gb = float(upload_bytes) / (1024**3)
 
         # Quotas via env or defaults
         listening_quota = int(
@@ -217,10 +211,9 @@ class DashboardQuery(graphene.ObjectType):
             .first()
         )
 
-        past_events = (
-            PlayEvent.objects.filter(studio=studio, ended_at__isnull=False)
-            .order_by("-started_at")[: limit]
-        )
+        past_events = PlayEvent.objects.filter(
+            studio=studio, ended_at__isnull=False
+        ).order_by("-started_at")[:limit]
         # Reverse past events to show older first (like a timeline)
         past_events = list(reversed(list(past_events)))
 

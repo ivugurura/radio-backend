@@ -1,12 +1,10 @@
-from django.http import FileResponse, Http404
-from apps.medias.models.track import Track
-from apps.studio.models import Studio
-from django.conf import settings
-from pathlib import Path
-from django.views.decorators.http import require_GET
 import re
+from pathlib import Path
 
+from django.conf import settings
 from django.http import (
+    FileResponse,
+    Http404,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
@@ -14,9 +12,12 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 
 from apps.medias.models import UploadSession
+from apps.medias.models.track import Track
 from apps.medias.services.upload import append_chunk
+from apps.studio.models import Studio
 
 CONTENT_RANGE_RE = re.compile(r"bytes (\d+)-(\d+)/(\d+)")
 
@@ -50,18 +51,16 @@ def serve_track(request, studio_slug, track_id):
     """Serve MP3 files for streaming"""
     try:
         track = Track.objects.get(id=track_id, studio__slug=studio_slug)
-        file_path = Path(settings.RADIO_STUDIOS_ROOT) / \
-            studio_slug / track.processed_rel_path
+        file_path = (
+            Path(settings.RADIO_STUDIOS_ROOT) / studio_slug / track.processed_rel_path
+        )
         print("Serving track from:", file_path)
         print(file_path)
         if not file_path.exists() or not file_path.is_file():
             raise Http404("Track not found")
 
         # Serve with proper headers for audio streaming
-        response = FileResponse(
-            open(file_path, 'rb'),
-            content_type='audio/mpeg'
-        )
+        response = FileResponse(open(file_path, 'rb'), content_type='audio/mpeg')
         response['Accept-Ranges'] = 'bytes'
         response['Content-Disposition'] = f'inline; filename="{track.title}"'
 

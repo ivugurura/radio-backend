@@ -1,17 +1,17 @@
+import datetime
 import json
 import uuid
-import datetime
 from typing import Any, Dict
 
 from django.db import transaction
-from django.http import JsonResponse, HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.studio.models.base import Studio
-from apps.studio.models.analytics import PlayEvent
 from apps.medias.models import Track
+from apps.studio.models.analytics import PlayEvent
+from apps.studio.models.base import Studio
 from apps.studio.services.helpers import get_studio
 
 EVENT_START = "track_started"
@@ -53,8 +53,9 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
     with transaction.atomic():
         for evt in events:
             etype = evt.get("type")
-            track_token = evt.get("track_id") or evt.get(
-                "track_uuid") or evt.get("file")
+            track_token = (
+                evt.get("track_id") or evt.get("track_uuid") or evt.get("file")
+            )
             started_at = _parse_iso(evt.get("started_at"))
             ended_at = _parse_iso(evt.get("ended_at"))
             source = evt.get("source") or "AUTO"
@@ -72,20 +73,23 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
             # 1) UUID direct
             try:
                 track_uuid = uuid.UUID(str(track_token))
-                track = Track.objects.filter(
-                    studio=studio, id=track_uuid).first()
+                track = Track.objects.filter(studio=studio, id=track_uuid).first()
             except Exception:
                 pass
             # 2) processed_rel_path match (filename)
             if track is None:
-                track = Track.objects.filter(
-                    studio=studio, processed_rel_path__icontains=str(
-                        track_token)
-                ).order_by("-created_at").first()
+                track = (
+                    Track.objects.filter(
+                        studio=studio, processed_rel_path__icontains=str(track_token)
+                    )
+                    .order_by("-created_at")
+                    .first()
+                )
             # 3) title fallback
             if track is None:
                 track = Track.objects.filter(
-                    studio=studio, title=str(track_token)).first()
+                    studio=studio, title=str(track_token)
+                ).first()
 
             if not track:
                 errors.append({"event": evt, "error": "track not found"})

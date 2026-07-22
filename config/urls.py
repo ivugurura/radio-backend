@@ -33,8 +33,7 @@ urlpatterns = [
     # Authentication endpoints
     path("api/auth/refresh", refresh_token_view, name="refresh-token"),
     # API endpoints
-    path("api/uploads/<uuid:upload_id>/chunk",
-         upload_chunk_view, name="upload-chunk"),
+    path("api/uploads/<uuid:upload_id>/chunk", upload_chunk_view, name="upload-chunk"),
     path(
         "api/studios/<str:studio_slug>/playlist",
         studio_playlist,
@@ -50,6 +49,9 @@ urlpatterns = [
         ingest_play_events,
         name="studio-play-events",
     ),
-    path("api/studios/<str:studio_slug>/tracks/<str:track_id>",
-         serve_track, name="serve-track"),
+    path(
+        "api/studios/<str:studio_slug>/tracks/<str:track_id>",
+        serve_track,
+        name="serve-track",
+    ),
 ]
