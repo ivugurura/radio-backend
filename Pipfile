@@ -3,6 +3,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[scripts]
+start = "python manage.py runserver"
+
 [packages]
 django = "==5.2.7"
 graphene-django = "==3.2.3"
