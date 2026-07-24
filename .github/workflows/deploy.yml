@@ -53,10 +53,10 @@ jobs:
           script: |
             set -euo pipefail
 
-            REPO_DIR="${DEPLOY_PATH:-/srv/apps/radio-backend}"
+            REPO_DIR="${DEPLOY_PATH:-${{ secrets.APP_DIR }}}"
             BRANCH="${DEPLOY_BRANCH:-main}"
-            SERVICE_NAME="${SERVICE_NAME:-radio-backend}"
-            CELERY_SERVICE="${CELERY_SERVICE:-radio-backend-celery}"
+            SERVICE_NAME="${SERVICE_NAME:-radio-api}"
+            CELERY_SERVICE="${CELERY_SERVICE:-radio-api-celery}"
 
             if [ ! -d "$REPO_DIR/.git" ]; then
               echo "Missing git repository at $REPO_DIR"
