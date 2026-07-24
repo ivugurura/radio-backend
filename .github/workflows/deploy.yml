@@ -23,17 +23,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Pipenv
-        run: pip install pipenv
-
       - name: Install dependencies
-        run: pipenv install --dev --deploy
+        run: pip install -r requirements-dev.txt
 
       - name: Run isort check
-        run: pipenv run python -m isort --check-only .
+        run: python -m isort --check-only .
 
       - name: Run black check
-        run: pipenv run python -m black --check .
+        run: python -m black --check .
 
   deploy:
     name: Deploy Backend
