@@ -28,7 +28,6 @@ config/       # Django settings, URLs, Celery, ASGI/WSGI
 - PostgreSQL
 - Redis (Celery broker + result backend)
 - FFmpeg and FFprobe (see below)
-- `pipenv` for dependency management
 
 ### Installing FFmpeg and FFprobe
 
@@ -59,15 +58,22 @@ If the binaries are not on `PATH`, set their absolute paths via `FFMPEG_PATH` an
 
 ## Setup
 
+### Development
+
+Uses `pipenv` to manage the virtualenv and dev dependencies (linting, testing tools).
+
 ```bash
-# Install dependencies
+# Install pipenv if needed
+pip install pipenv
+
+# Install all dependencies (including dev)
 pipenv install --dev
 
-# Activate virtual environment
+# Activate the virtualenv
 pipenv shell
 
-# Configure environment (see Environment Variables below)
-cp .env.example .env  # create from template
+# Configure environment
+cp .env.example .env
 
 # Apply database migrations
 python manage.py migrate
@@ -79,6 +85,29 @@ python manage.py createsuperuser
 python manage.py runserver
 # or
 make run
+```
+
+### Production
+
+Uses a plain `venv` with `requirements.txt` (no dev tools).
+
+```bash
+# Create and activate a virtual environment
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+# Install production dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+
+# Apply database migrations
+python manage.py migrate
+
+# Collect static files
+python manage.py collectstatic --noinput
 ```
 
 ## Environment Variables

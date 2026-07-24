@@ -68,9 +68,11 @@ jobs:
             git checkout "$BRANCH"
             git pull --ff-only origin "$BRANCH"
 
-            pipenv install --dev --deploy
-            pipenv run python manage.py migrate --noinput
-            pipenv run python manage.py collectstatic --noinput
+            python3.12 -m venv .venv
+            .venv/bin/pip install --upgrade pip
+            .venv/bin/pip install -r requirements.txt
+            .venv/bin/python manage.py migrate --noinput
+            .venv/bin/python manage.py collectstatic --noinput
 
             sudo systemctl restart "$SERVICE_NAME"
             if systemctl list-unit-files | grep -q "^${CELERY_SERVICE}\\.service"; then
