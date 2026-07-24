@@ -10,7 +10,7 @@ from celery import Celery
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-celery_app = Celery("radio_backend")
+celery_app = Celery("radio_api")
 # read configuration from Django settings with prefix CELERY_
 celery_app.config_from_object("django.conf:settings", namespace="CELERY")
 # auto-discover tasks.py in installed apps
