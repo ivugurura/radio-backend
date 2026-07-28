@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
 
+      - name: Format with isort
+        run: python -m isort .
+
+      - name: Format with black
+        run: python -m black .
+
       - name: Run isort check
         run: python -m isort --check-only .
 
