@@ -52,8 +52,7 @@ jobs:
 
             REPO_DIR="${DEPLOY_PATH:-${{ secrets.APP_DIR }}}"
             BRANCH="${DEPLOY_BRANCH:-main}"
-            SERVICE_NAME="${SERVICE_NAME:-radio-api}"
-            CELERY_SERVICE="${CELERY_SERVICE:-radio-api-celery}"
+            SERVICE_NAME="${SERVICE_NAME:-radio-control-service}"
 
             if [ ! -d "$REPO_DIR/.git" ]; then
               echo "Missing git repository at $REPO_DIR"
@@ -72,8 +71,5 @@ jobs:
             .venv/bin/python manage.py collectstatic --noinput
 
             sudo systemctl restart "$SERVICE_NAME"
-            if systemctl list-unit-files | grep -q "^${CELERY_SERVICE}\\.service"; then
-              sudo systemctl restart "$CELERY_SERVICE"
-            fi
 
             sudo systemctl is-active --quiet "$SERVICE_NAME"

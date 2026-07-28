@@ -9,3 +9,4 @@ djangorestframework==3.16.1
 django-cors-headers==4.9.0
 celery==5.5.3
 django-redis==6.0.0
+gunicorn==26.0.0
