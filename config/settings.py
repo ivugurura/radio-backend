@@ -37,7 +37,9 @@ FFPROBE_PATH = os.getenv("FFPROBE_PATH", "ffprobe")
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "INSECURE-CHANGE-ME")
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
-CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:3000"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [

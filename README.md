@@ -116,6 +116,8 @@ python manage.py collectstatic --noinput
 |---|---|---|
 | `DJANGO_SECRET_KEY` | `INSECURE-CHANGE-ME` | Django secret key — **must be set in production** |
 | `DJANGO_DEBUG` | `False` | Enable debug mode (`True` / `False`) |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated list of allowed hostnames (required when `DEBUG=False`) |
+| `CORS_ALLOWED_ORIGINS` | `http://127.0.0.1:8000,http://localhost:3000` | Comma-separated list of allowed CORS origins (frontend URLs) |
 | `DB_NAME` | `dj_graphql` | PostgreSQL database name |
 | `DB_USER` | `dj_user` | PostgreSQL username |
 | `DB_PASSWORD` | _(empty)_ | PostgreSQL password |
