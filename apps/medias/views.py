@@ -24,7 +24,6 @@ CONTENT_RANGE_RE = re.compile(r"bytes (\d+)-(\d+)/(\d+)")
 
 @csrf_exempt
 def upload_chunk_view(request, upload_id):
-    print(request.method)
     if request.method != "PUT":
         return HttpResponseNotAllowed(["PUT"])
 
