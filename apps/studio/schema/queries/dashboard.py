@@ -197,73 +197,125 @@ class DashboardQuery(graphene.ObjectType):
 
     # -------- Current Queue --------
     def resolve_current_queue(self, info, studio_id: str, limit: int):
-        limit = 4
+        limit = max(limit or 0, 5)
         studio = get_studio(studio_id)
         if not studio:
             return CurrentQueue(items=[])
 
-        now = timezone.now()
-        GRACE_PERIOD = datetime.timedelta(seconds=20)
-        # Current playing = ended_at is null (if multiple, take latest started)
+        all_events = PlayEvent.objects.filter(studio=studio, track__isnull=False)
+
+        # Current playing = ended_at is null (if multiple, take latest started/sequence)
         current_event = (
-            PlayEvent.objects.filter(studio=studio, ended_at__isnull=True)
-            .order_by("-started_at")
+            all_events.filter(ended_at__isnull=True)
+            .order_by("-started_at", "-sequence")
             .first()
         )
+        if not current_event:
+            current_event = all_events.order_by("-started_at", "-sequence").first()
+        if not current_event:
+            return CurrentQueue(items=[])
 
-        past_events = PlayEvent.objects.filter(
-            studio=studio, ended_at__isnull=False
-        ).order_by("-started_at")[:limit]
-        # Reverse past events to show older first (like a timeline)
-        past_events = list(reversed(list(past_events)))
+        before_target = (limit - 1) // 2
+        after_target = limit - 1 - before_target
+        # Pull a wider slice so we can deduplicate by track and still fill targets.
+        candidate_count = max(limit * 4, 12)
 
-        events = []
-        if past_events:
-            events.extend(past_events)
-        if current_event:
-            events.append(current_event)
+        before_candidates = list(
+            all_events.filter(
+                Q(started_at__lt=current_event.started_at)
+                | Q(
+                    started_at=current_event.started_at,
+                    sequence__lt=current_event.sequence,
+                )
+            )
+            .order_by("-started_at", "-sequence")[:candidate_count]
+        )
+        after_candidates = list(
+            all_events.filter(
+                Q(started_at__gt=current_event.started_at)
+                | Q(
+                    started_at=current_event.started_at,
+                    sequence__gt=current_event.sequence,
+                )
+            )
+            .order_by("started_at", "sequence")[:candidate_count]
+        )
 
-        items = []
-        for ev in events:
+        used_track_ids = set()
+
+        def to_queue_item(ev: PlayEvent, is_current: bool = False):
             track = ev.track
             if not track:
+                return None
+            return QueueItem(
+                id=track.id,
+                title=track.title or "Untitled",
+                artist=track.artist or "",
+                startedAt=ev.started_at,
+                durationSec=track.duration_seconds,
+                coverUrl=None,
+                isCurrent=is_current,
+            )
+
+        current_track_id = current_event.track_id
+        if current_track_id:
+            used_track_ids.add(current_track_id)
+
+        before_events = []
+        for ev in before_candidates:
+            if len(before_events) >= before_target:
+                break
+            if not ev.track_id or ev.track_id in used_track_ids:
                 continue
-            items.append(
-                QueueItem(
-                    id=track.id,
-                    title=track.title or "Untitled",
-                    artist=track.artist or "",
-                    startedAt=ev.started_at,
-                    durationSec=track.duration_seconds,
-                    coverUrl=None,  # TODO: add artwork field if available
-                    isCurrent=current_event and ev.id == current_event.id,
-                )
-            )
-        print("Current queue items:", len(items), limit)
-        return CurrentQueue(items=items)
-        # If we have fewer than limit and can show more recent finished events:
-        if len(items) < limit:
-            extra = (
-                PlayEvent.objects.filter(studio=studio)
-                .exclude(id__in=[ev.id for ev in events])
-                .order_by("-started_at")[: (limit - len(items))]
-            )
-            # Append (reverse for chronological)
-            extra = list(reversed(list(extra)))
-            for ev in extra:
-                track = ev.track
-                if not track:
+            used_track_ids.add(ev.track_id)
+            before_events.append(ev)
+
+        after_events = []
+        for ev in after_candidates:
+            if len(after_events) >= after_target:
+                break
+            if not ev.track_id or ev.track_id in used_track_ids:
+                continue
+            used_track_ids.add(ev.track_id)
+            after_events.append(ev)
+
+        current_event_ids = {ev.id for ev in before_events}
+        current_event_ids.update(ev.id for ev in after_events)
+        current_event_ids.add(current_event.id)
+
+        # Fill any missing slots, prioritizing older history first, then newer.
+        if len(before_events) + len(after_events) + 1 < limit:
+            missing = limit - (len(before_events) + len(after_events) + 1)
+            for ev in before_candidates:
+                if missing <= 0:
+                    break
+                if ev.id in current_event_ids:
                     continue
-                items.append(
-                    QueueItem(
-                        id=track.id,
-                        title=track.title or "Untitled",
-                        artist=track.artist or "",
-                        startedAt=ev.started_at,
-                        durationSec=track.duration_seconds,
-                        coverUrl=None,
-                        isCurrent=False,
-                    )
-                )
-        print("Current queue items:", len(items))
+                if not ev.track_id or ev.track_id in used_track_ids:
+                    continue
+                used_track_ids.add(ev.track_id)
+                current_event_ids.add(ev.id)
+                before_events.append(ev)
+                missing -= 1
+
+            if missing > 0:
+                for ev in after_candidates:
+                    if missing <= 0:
+                        break
+                    if ev.id in current_event_ids:
+                        continue
+                    if not ev.track_id or ev.track_id in used_track_ids:
+                        continue
+                    used_track_ids.add(ev.track_id)
+                    current_event_ids.add(ev.id)
+                    after_events.append(ev)
+                    missing -= 1
+
+        timeline_events = list(reversed(before_events)) + [current_event] + after_events
+        items = []
+        for ev in timeline_events:
+            queue_item = to_queue_item(ev, is_current=ev.id == current_event.id)
+            if queue_item:
+                items.append(queue_item)
+
         return CurrentQueue(items=items[:limit])
