@@ -133,11 +133,28 @@ python manage.py collectstatic --noinput
 
 ## Running Celery
 
-Start a Celery worker to process media transcoding tasks:
+For local development, you can start a Celery worker directly:
 
 ```bash
 celery -A config.celery worker -l info
 ```
+
+For production on a VPS, the recommended approach is to run Django and Celery together from one systemd service. A launcher script and service unit are available in:
+
+- [deploy/scripts/start-single-service.sh](deploy/scripts/start-single-service.sh)
+- [deploy/systemd/radio-backend.service](deploy/systemd/radio-backend.service)
+
+Example commands:
+
+```bash
+sudo cp deploy/systemd/radio-backend.service /etc/systemd/system/radio-backend.service
+sudo systemctl daemon-reload
+sudo systemctl enable radio-backend
+sudo systemctl start radio-backend
+sudo systemctl status radio-backend
+```
+
+Make sure to update the service file paths and user name to match your server.
 
 ## API Reference
 

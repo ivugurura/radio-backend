@@ -1,0 +1,19 @@
+[Unit]
+Description=Radio Studio Control API
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=%i
+Group=www-data
+WorkingDirectory=/home/%i/radio/api
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/home/%i/radio/api/.env
+ExecStart=/home/%i/radio/api/deploy/scripts/start-single-service.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
