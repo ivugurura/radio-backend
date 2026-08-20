@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('display_name', models.CharField(max_length=120)),
                 ('description', models.TextField(blank=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('default_br_kbps', models.PositiveIntegerField(default=128)),
+                ('default_bitrate_kbps', models.PositiveIntegerField(default=128)),
                 ('auto_normalize', models.BooleanField(default=True)),
                 (
                     'loudness_target_lufs',
