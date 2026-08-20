@@ -126,7 +126,7 @@ python manage.py collectstatic --noinput
 | `CELERY_BROKER_URL` | `redis://127.0.0.1:6379/1` | Celery broker URL |
 | `CELERY_RESULT_BACKEND` | `redis://127.0.0.1:6379/2` | Celery result backend URL |
 | `RADIO_ROOT` | `<BASE_DIR>/var/radio` | Root directory for all studio media files |
-| `DEFAULT_TARGET_BITRATE_KBPS` | `128` | Default output bitrate for transcoded MP3s |
+| `DEFAULT_TARGET_BR_KBPS` | `128` | Default output bitrate for transcoded MP3s |
 | `FFMPEG_PATH` | `ffmpeg` | Path to the `ffmpeg` binary |
 | `FFPROBE_PATH` | `ffprobe` | Path to the `ffprobe` binary |
 | `STUDIO_TOKEN` | _(empty)_ | Bearer token for studio event ingest endpoints |

@@ -161,8 +161,11 @@ def start_pipeline_for_upload(self, track_id: str):
         track.save(update_fields=["state", "error_message", "updated_at"])
         return
 
-    target_kbps = getattr(studio, "default_bitrate_kbps", None) or getattr(
-        settings, "DEFAULT_TARGET_BITRATE_KBPS", 128
+    target_kbps = getattr(studio, "default_br_kbps", None) or getattr(
+        settings, "DEFAULT_TARGET_BR_KBPS", 128
+    )
+    target_hz = getattr(studio, "default_sr_hz", None) or getattr(
+        settings, "DEFAULT_TARGET_SR_HZ", 48000
     )
 
     paths = studio_paths(studio, target_kbps)
