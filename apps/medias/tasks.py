@@ -240,6 +240,8 @@ def start_pipeline_for_upload(self, track_id: str):
             "libmp3lame",
             "-b:a",
             f"{target_kbps}k",
+            "-ar",
+            str(target_hz),
             str(work_out),
         ]
         logger.info("Running ffmpeg: %s", " ".join(ff_cmd))
