@@ -10,7 +10,7 @@ class Studio(BaseModel):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
-    default_bitrate_kbps = models.PositiveIntegerField(default=128)
+    default_br_kbps = models.PositiveIntegerField(default=128)
     auto_normalize = models.BooleanField(default=True)
     loudness_target_lufs = models.DecimalField(
         max_digits=5, decimal_places=2, default=-14.0

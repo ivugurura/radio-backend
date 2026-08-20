@@ -21,7 +21,13 @@ RADIO_ROOT = Path(os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
 RADIO_STUDIOS_ROOT = RADIO_ROOT / "studios"
 
 # Target bitrate for normalized MP3 when publishing
-DEFAULT_TARGET_BITRATE_KBPS = int(os.getenv("DEFAULT_TARGET_BITRATE_KBPS", "128"))
+DEFAULT_TARGET_BR_KBPS = int(os.getenv("DEFAULT_TARGET_BR_KBPS", "128"))
+
+# Target sample rate for normalized MP3 when publishing. Uploads previously
+# passed through at whatever sample rate the source had, which let the
+# library drift to a mix of rates over time and broke the live-encoder
+# splice whenever a track's rate didn't match the live source's.
+DEFAULT_TARGET_SR_HZ = int(os.getenv("DEFAULT_TARGET_SR_HZ", "48000"))
 
 # Upload streaming memory caps
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024

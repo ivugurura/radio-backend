@@ -38,7 +38,7 @@ def delete_track_files(track: Track) -> None:
 
     # Processing artifact – try to infer path using bitrate (fallback to settings)
     target_kbps = track.bitrate_kbps or getattr(
-        settings, "DEFAULT_TARGET_BITRATE_KBPS", 128
+        settings, "DEFAULT_TARGET_BR_KBPS", 128
     )
     paths = studio_paths(track.studio, target_kbps)
     _safe_unlink(paths.processing / f"{track.id}.mp3")
