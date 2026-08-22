@@ -1,6 +1,7 @@
 import graphene
 import graphql_jwt
 
+from apps.chat.schema.queries import ChatQuery
 from apps.medias.schema.mutations import MediasMutations
 from apps.medias.schema.queries import MediasQuery
 from apps.studio.schema.queries.dashboard import DashboardQuery
@@ -14,6 +15,7 @@ class Query(
     MediasQuery,
     ListenerQuery,
     DashboardQuery,
+    ChatQuery,
     graphene.ObjectType,
 ):
     # Root-level query composition
