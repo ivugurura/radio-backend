@@ -64,6 +64,7 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'OPTIONS']
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -72,6 +73,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "corsheaders",
+    "channels",
     "graphene_django",
     "django_filters",
     'rest_framework',
@@ -82,6 +84,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.studio",
     "apps.medias",
+    "apps.chat",
 ]
 
 MIDDLEWARE = [
@@ -113,6 +116,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("CHANNELS_REDIS_URL", "redis://127.0.0.1:6379/3")]
+        },
+    }
+}
 
 
 # Database

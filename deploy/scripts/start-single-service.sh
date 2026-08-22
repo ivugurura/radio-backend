@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# gunicorn now serves config.asgi:application (uvicorn worker) to also handle
+# /ws/... chat; confirm the reverse proxy forwards WebSocket upgrade headers
+# for /ws/ before deploying.
+
 CURRENT_USER="$(whoami)"
 APP_ROOT="${APP_ROOT:-/home/$CURRENT_USER/radio/api}"
 VENV_DIR="${VENV_DIR:-$APP_ROOT/.venv}"
@@ -41,7 +45,8 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-"$VENV_DIR/bin/gunicorn" config.wsgi:application \
+"$VENV_DIR/bin/gunicorn" config.asgi:application \
+  -k uvicorn.workers.UvicornWorker \
   --bind "$HOST:$PORT" \
   --workers "$GUNICORN_WORKERS" &
 
