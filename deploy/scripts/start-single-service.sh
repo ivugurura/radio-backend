@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# NOTE: gunicorn below now serves config.asgi:application via the uvicorn
-# worker class, so this single process handles both HTTP/GraphQL and the
-# /ws/... websocket chat route. Before deploying this, confirm whatever
-# reverse proxy fronts this service forwards WebSocket upgrade headers
-# (Connection: Upgrade / Upgrade: websocket) for paths under /ws/.
+# gunicorn now serves config.asgi:application (uvicorn worker) to also handle
+# /ws/... chat; confirm the reverse proxy forwards WebSocket upgrade headers
+# for /ws/ before deploying.
 
 CURRENT_USER="$(whoami)"
 APP_ROOT="${APP_ROOT:-/home/$CURRENT_USER/radio/api}"

@@ -20,10 +20,7 @@ def _get_user_from_token(token: str):
 
 
 class JWTAuthMiddleware(BaseMiddleware):
-    """ASGI middleware that authenticates websocket connections using the
-    existing GraphQL JWT infrastructure, reading the token from the
-    ``token`` query-string parameter.
-    """
+    """Authenticates websocket connections via the `token` query param, reusing the existing GraphQL JWT infra."""
 
     async def __call__(self, scope, receive, send):
         query_string = scope.get("query_string", b"")

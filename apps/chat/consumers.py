@@ -65,8 +65,7 @@ def _create_message(
     body,
     quoted_message,
 ):
-    # Passing related objects directly (rather than *_id) keeps them cached on
-    # the returned instance, so _serialize_message doesn't trigger extra queries.
+    # Related objects (not *_id) so _serialize_message reads them from cache.
     return ChatMessage.objects.create(
         studio=studio,
         author_type=author_type,
@@ -171,7 +170,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self._handle_mute_listener(content)
         elif message_type == "unmute_listener":
             await self._handle_unmute_listener(content)
-        # Unknown types are ignored.
 
     async def _handle_send_message(self, content):
         if not self.is_admin:

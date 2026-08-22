@@ -13,9 +13,8 @@ from django.core.asgi import get_asgi_application
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-# Build the plain Django ASGI app first, before importing anything that
-# touches models (e.g. channel routing, which imports consumers, which
-# import models) — otherwise Django raises AppRegistryNotReady.
+# Must build before importing anything that touches models (routing ->
+# consumers -> models), or Django raises AppRegistryNotReady.
 django_asgi_app = get_asgi_application()
 
 from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402

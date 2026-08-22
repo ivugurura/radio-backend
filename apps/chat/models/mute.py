@@ -30,10 +30,7 @@ class ChatMute(BaseModel):
 
 
 def is_listener_muted(studio, listener_client_id: str) -> bool:
-    """Return True if the listener currently has an active (non-expired) mute.
-
-    ChatMute.objects already excludes soft-deleted (i.e. unmuted) rows.
-    """
+    """True if the listener has an active mute (objects already excludes unmuted/soft-deleted rows)."""
     return (
         ChatMute.objects.filter(studio=studio, listener_client_id=listener_client_id)
         .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
