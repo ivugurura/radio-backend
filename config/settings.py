@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.studio",
     "apps.medias",
+    "apps.chat",
 ]
 
 MIDDLEWARE = [
