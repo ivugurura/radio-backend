@@ -4,8 +4,10 @@ import graphql_jwt
 from apps.chat.schema.queries import ChatQuery
 from apps.medias.schema.mutations import MediasMutations
 from apps.medias.schema.queries import MediasQuery
+from apps.studio.schema.mutations.streaming import StreamingMutations
 from apps.studio.schema.queries.dashboard import DashboardQuery
 from apps.studio.schema.queries.listeners import ListenerQuery
+from apps.studio.schema.queries.streaming import StreamingQuery
 from apps.users.schema.mutations import UserMutations
 from apps.users.schema.queries import UserQuery
 
@@ -15,6 +17,7 @@ class Query(
     MediasQuery,
     ListenerQuery,
     DashboardQuery,
+    StreamingQuery,
     ChatQuery,
     graphene.ObjectType,
 ):
@@ -28,6 +31,7 @@ class Query(
 class Mutation(
     UserMutations,
     MediasMutations,
+    StreamingMutations,
     graphene.ObjectType,
 ):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
