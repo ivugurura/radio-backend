@@ -60,3 +60,18 @@ class QueueItem(graphene.ObjectType):
 
 class CurrentQueue(graphene.ObjectType):
     items = graphene.List(graphene.NonNull(QueueItem), required=True)
+
+
+class StreamingConfig(graphene.ObjectType):
+    studio_id = graphene.String(required=True)
+    host = graphene.String(required=True)
+    port = graphene.Int(required=True)
+    mount = graphene.String(required=True)
+    protocol = graphene.String(required=True)
+    username = graphene.String(required=True)
+    password = graphene.String(required=True)
+    format = graphene.String(required=True)
+    bitrate_kbps = graphene.Int(required=True)
+    sample_rate_hz = graphene.Int(required=True)
+    channels = graphene.Int(required=True)
+    rotated_at = graphene.DateTime()
