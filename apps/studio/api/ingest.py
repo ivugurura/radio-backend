@@ -55,7 +55,6 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
         JsonResponse: A JSON response indicating success or failure.
     """
     token = _bearer_token(request)
-    print(token)
     if not token:
         return server_response("Invalid token", status_code=401)
     expected = getattr(settings, "STUDIO_TOKEN", "")

@@ -53,8 +53,6 @@ def serve_track(request, studio_slug, track_id):
         file_path = (
             Path(settings.RADIO_STUDIOS_ROOT) / studio_slug / track.processed_rel_path
         )
-        print("Serving track from:", file_path)
-        print(file_path)
         if not file_path.exists() or not file_path.is_file():
             raise Http404("Track not found")
 

@@ -156,5 +156,4 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
         "updated": updated,
         "errors": errors,
     }
-    print(data)
     return JsonResponse(data, status=200)
