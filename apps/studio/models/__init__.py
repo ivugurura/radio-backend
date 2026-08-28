@@ -3,6 +3,7 @@ from .base import Studio, StudioMembership
 from .live import LiveSession
 from .playlist import Playlist, PlaylistItem, RotationRule
 from .schedule import ScheduledShow, ShowSlot
+from .streaming import StreamingCredential
 
 __all__ = [
     "Studio",
@@ -16,4 +17,5 @@ __all__ = [
     "PlayEvent",
     "ListenerSession",
     "ListenerStatBucket",
+    "StreamingCredential",
 ]
