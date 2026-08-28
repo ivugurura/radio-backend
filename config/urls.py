@@ -23,6 +23,7 @@ from graphene_django.views import GraphQLView
 from apps.medias.views import serve_track, upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
+from apps.studio.api.streaming_config import streaming_config
 from apps.studio.views import studio_playlist
 from apps.users.views import refresh_token_view
 
@@ -48,6 +49,11 @@ urlpatterns = [
         "api/studios/<str:studio_slug>/play-events",
         ingest_play_events,
         name="studio-play-events",
+    ),
+    path(
+        "api/studios/<str:studio_slug>/streaming-config",
+        streaming_config,
+        name="studio-streaming-config",
     ),
     path(
         "api/studios/<str:studio_slug>/tracks/<str:track_id>",
