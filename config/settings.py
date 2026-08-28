@@ -219,7 +219,16 @@ PASSWORD_HASHERS = [
 ]
 
 # Celery (example)
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "")
 
 STUDIO_TOKEN = os.getenv("STUDIO_TOKEN", "")
+
+# Encrypts StreamingCredential.password_encrypted at rest. Generate with:
+#   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+STREAMING_CREDENTIAL_KEY = os.getenv("STREAMING_CREDENTIAL_KEY", "")
+
+# Public host/port a live encoder (e.g. BUTT) connects to — the raw Icecast
+# SOURCE port (often an Nginx `stream` TCP proxy), distinct from the HTTP port.
+STREAMING_INGEST_HOST = os.getenv("STREAMING_INGEST_HOST", "")
+STREAMING_INGEST_PORT = int(os.getenv("STREAMING_INGEST_PORT", ""))
