@@ -1,4 +1,3 @@
-import datetime
 import json
 import random
 import time
@@ -7,7 +6,6 @@ import uuid
 from django.conf import settings
 from django.db import OperationalError, connection, transaction
 from django.http import HttpRequest, JsonResponse
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -103,29 +101,21 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
         ),
     )
 
-    now = timezone.now()
-    GRACE_PERIOD = datetime.timedelta(
-        seconds=20
-    )  # noqa: F841 (reserved for future use)
-
     def _apply():
         inserted = 0
         updated = 0
         upserted = 0
 
         with transaction.atomic():
-            # Serialize concurrent ingests for this studio. A studio flushes its
-            # entire listener roster every few seconds; under load one request
-            # can still be running when the next arrives, and the two would lock
-            # the same listener_sessions rows and deadlock. This transaction-
-            # scoped advisory lock makes them queue instead. Released on commit.
+            # Serialize concurrent ingests for this studio.
             with connection.cursor() as cur:
                 cur.execute(
                     "SELECT pg_advisory_xact_lock(hashtext(%s))",
                     [f"listener_ingest:{studio.pk}"],
                 )
 
-            # Upsert ListenerSession by explicit UUID (client-provided)
+            # Upsert every ListenerSession in one statement.
+            objs = []
             for s in sessions:
                 s_id = s.get("id")
                 if not s_id:
@@ -135,47 +125,50 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                 except Exception:
                     s_id_uuid = uuid.uuid4()
 
-                started_at = _parse_iso(s.get("started_at")) or None
-                ended_at = _parse_iso(s.get("ended_at")) or None
-
-                defaults = {
-                    "studio": studio,
-                    "ip_hash": s.get("ip_hash", ""),
-                    "user_agent": s.get("user_agent", ""),
-                    "client_type": s.get("client_type", ""),
-                    "country": s.get("country", ""),
-                    "region": s.get("region", ""),
-                    "city": s.get("city", ""),
-                    "lat": s.get("lat", None),
-                    "lon": s.get("lon", None),
-                    "total_bytes": int(s.get("total_bytes", 0)),
-                }
-
-                if started_at:
-                    defaults["started_at"] = started_at
-                if ended_at:
-                    defaults["ended_at"] = ended_at
-                session, created = ListenerSession.objects.update_or_create(
-                    pk=s_id_uuid, defaults=defaults
+                objs.append(
+                    ListenerSession(
+                        pk=s_id_uuid,
+                        studio=studio,
+                        ip_hash=s.get("ip_hash", ""),
+                        user_agent=s.get("user_agent", ""),
+                        client_type=s.get("client_type", ""),
+                        country=s.get("country", ""),
+                        region=s.get("region", ""),
+                        city=s.get("city", ""),
+                        lat=s.get("lat", None),
+                        lon=s.get("lon", None),
+                        total_bytes=int(s.get("total_bytes", 0) or 0),
+                        ended_at=_parse_iso(s.get("ended_at")) or None,
+                    )
                 )
-                if created:
-                    inserted += 1
-                else:
-                    changed = False
-                    for k, v in defaults.items():
-                        if k == "total_bytes":
-                            new_val = max(getattr(session, k) or 0, int(v or 0))
-                        else:
-                            new_val = v
-                        if getattr(session, k) != new_val:
-                            setattr(session, k, new_val)
-                            changed = True
-                    if changed:
-                        session.save(update_fields=list(defaults.keys()))
-                    updated += 1
 
-                # Always reflesh last_seen to now on any heartbeat
-                ListenerSession.objects.filter(pk=session.pk).update(last_seen=now)
+            if objs:
+                existing_ids = set(
+                    ListenerSession.objects.filter(
+                        pk__in=[o.pk for o in objs]
+                    ).values_list("pk", flat=True)
+                )
+                inserted = sum(1 for o in objs if o.pk not in existing_ids)
+                updated = len(objs) - inserted
+
+                ListenerSession.objects.bulk_create(
+                    objs,
+                    update_conflicts=True,
+                    unique_fields=["id"],
+                    update_fields=[
+                        "ip_hash",
+                        "user_agent",
+                        "client_type",
+                        "country",
+                        "region",
+                        "city",
+                        "lat",
+                        "lon",
+                        "total_bytes",
+                        "ended_at",
+                        "last_seen",
+                    ],
+                )
 
             # Upsert ListenerStatBucket by unique (studio, interval, bucket_start)
             for b in buckets:
