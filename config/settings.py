@@ -17,7 +17,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-RADIO_ROOT = Path(os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
+RADIO_ROOT = Path(
+    os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
 RADIO_STUDIOS_ROOT = RADIO_ROOT / "studios"
 
 # Target bitrate for normalized MP3 when publishing
@@ -57,6 +58,7 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'x-upload-token',
     'content-range',
+    'accept-language',
 ]
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'OPTIONS']
 
@@ -81,6 +83,7 @@ INSTALLED_APPS = [
     # Refresh token app
     'graphql_jwt.refresh_token',
     # Apps
+    "apps.common",
     "apps.users",
     "apps.studio",
     "apps.medias",
@@ -96,6 +99,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.common.middleware.LanguageMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -134,8 +138,8 @@ CHANNEL_LAYERS = {
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "dj_graphql"),
-        "USER": os.getenv("DB_USER", "dj_user"),
+        "NAME": os.getenv("DB_NAME", ""),
+        "USER": os.getenv("DB_USER", ""),
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
         "HOST": os.getenv("DB_HOST", "127.0.0.1"),
         "PORT": os.getenv("DB_PORT", "5432"),
@@ -166,7 +170,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+
+# Languages the API serves. Stations are language specific and the client sends
+# the active one via the `Accept-Language` header (see apps.common.middleware).
+LANGUAGES = [
+    ("en", "English"),
+    ("rw", "Kinyarwanda"),
+]
 
 TIME_ZONE = "UTC"
 
