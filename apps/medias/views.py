@@ -57,7 +57,6 @@ def serve_track(request, studio_slug, track_id):
         if not file_path.exists() or not file_path.is_file():
             raise Http404(translate("medias.track_not_found"))
 
-        # Serve with proper headers for audio streaming
         response = FileResponse(open(file_path, 'rb'), content_type='audio/mpeg')
         response['Accept-Ranges'] = 'bytes'
         response['Content-Disposition'] = f'inline; filename="{track.title}"'

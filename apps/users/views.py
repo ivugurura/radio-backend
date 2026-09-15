@@ -25,14 +25,12 @@ class RefreshTokenView(View):
 
     def post(self, request):
         try:
-            # Parse request body
             body = json.loads(request.body.decode('utf-8'))
             refresh_token = body.get('refresh_token')
 
             if not refresh_token:
                 return JsonResponse({'error': 'refresh_token is required'}, status=400)
 
-            # Verify and decode the refresh token
             try:
                 payload = get_payload(refresh_token)
                 user = get_user_by_payload(payload)
@@ -40,10 +38,7 @@ class RefreshTokenView(View):
                 if not user:
                     return JsonResponse({'error': 'Invalid refresh token'}, status=401)
 
-                # Generate new access token
                 new_token = get_token(user)
-
-                # Optionally generate new refresh token (if token rotation is enabled)
                 new_refresh_token = get_refresh_token(user)
 
                 return JsonResponse(

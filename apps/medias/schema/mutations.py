@@ -119,15 +119,13 @@ class DeleteTrack(graphene.Mutation):
 
         # TODO: permission check (user can manage track in this studio)
 
-        # Remove files first (best effort)
         delete_track_files(track)
 
-        # Optionally delete the related UploadSession to clean up database (if you prefer to keep history, remove this)
+        # Also removes the related UploadSession; drop this block to retain upload history.
         up = track.upload_session
         track.delete()
 
         if up:
-            # If no other tracks refer to this session, delete it
             if not UploadSession.objects.filter(id=up.id).exists():
                 try:
                     up.delete()

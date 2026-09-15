@@ -29,7 +29,6 @@ class RegisterUser(graphene.Mutation):
             raise Exception(translate("auth.username_taken"))
 
         user = User.objects.create_user(user_name=user_name, email=email, **kwargs)
-        # Immediately issue tokens (optional)
         payload = get_token(user)
         return RegisterUser(user=user, token=payload)
 

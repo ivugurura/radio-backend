@@ -27,16 +27,13 @@ def delete_track_files(track: Track) -> None:
     """
     base = Path(settings.RADIO_STUDIOS_ROOT)
 
-    # Processed file
     if track.processed_rel_path:
         _safe_unlink(base / track.processed_rel_path)
 
-    # Incoming temp (.part)
     up = getattr(track, "upload_session", None)
     if up and up.temp_rel_path:
         _safe_unlink(base / up.temp_rel_path)
 
-    # Processing artifact – try to infer path using bitrate (fallback to settings)
     target_kbps = track.bitrate_kbps or getattr(
         settings, "DEFAULT_TARGET_BR_KBPS", 128
     )

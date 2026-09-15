@@ -77,7 +77,6 @@ def coerce_year_from_tags(tags: Dict[str, str]) -> Optional[int]:
         val = tags.get(key)
         if not val:
             continue
-        # Keep only leading digits
         s = "".join(ch for ch in str(val) if ch.isdigit() or ch == "-")
         if len(s) >= 4 and s[:4].isdigit():
             try:
@@ -111,7 +110,6 @@ def extract_tags_from_probe(data: Dict) -> Tuple[float, Dict[str, str]]:
         tags[normalize_tag_key(k)] = str(v)
 
     if not tags:
-        # fall back to first audio stream tags
         for st in data.get("streams", []):
             if st.get("codec_type") == "audio":
                 st_tags = st.get("tags") or {}
@@ -150,7 +148,6 @@ def start_pipeline_for_upload(self, track_id: str):
         track.save(update_fields=["state", "updated_at"])
         return
 
-    # Resolve ffmpeg/ffprobe robustly
     try:
         ffmpeg = resolve_bin("ffmpeg", getattr(settings, "FFMPEG_PATH", None))
         ffprobe = resolve_bin("ffprobe", getattr(settings, "FFPROBE_PATH", None))
@@ -174,11 +171,9 @@ def start_pipeline_for_upload(self, track_id: str):
     final_out = paths.library_mp3 / f"{track.id}.mp3"
 
     try:
-        # Ensure dirs
         work_out.parent.mkdir(parents=True, exist_ok=True)
         final_out.parent.mkdir(parents=True, exist_ok=True)
 
-        # Probe input (best effort)
         duration = 0.0
         probed_tags: Dict[str, str] = {}
         try:
@@ -187,8 +182,7 @@ def start_pipeline_for_upload(self, track_id: str):
         except Exception as e:
             logger.warning("ffprobe failed for %s: %s", work_in, e)
 
-        # Map tags to Track fields (only fill if field is empty)
-        # Common keys: title, artist, album, date/year, genre
+        # Probed tags only fill fields that are still empty; existing Track data wins.
         def pick(*keys: str) -> Optional[str]:
             for k in keys:
                 v = probed_tags.get(k)
@@ -202,7 +196,6 @@ def start_pipeline_for_upload(self, track_id: str):
         new_genre = pick("genre", "tcon")
         new_year = coerce_year_from_tags(probed_tags)
 
-        # Update preliminary metadata prior to processing (won't error if missing)
         dirty_fields = ["updated_at"]
         if new_title and not track.title:
             track.title = new_title
@@ -222,11 +215,9 @@ def start_pipeline_for_upload(self, track_id: str):
         if dirty_fields:
             track.save(update_fields=dirty_fields)
 
-        # Move to processing state
         track.state = Track.State.PROCESSING
         track.save(update_fields=["state", "updated_at"])
 
-        # ffmpeg normalize + re-encode; preserve metadata with -map_metadata 0
         ff_cmd = [
             ffmpeg,
             "-y",
@@ -262,7 +253,6 @@ def start_pipeline_for_upload(self, track_id: str):
         # Atomic publish: replace is atomic on same filesystem
         work_out.replace(final_out)
 
-        # Update Track
         processed_path = relpath_from_root(final_out).replace(studio.slug + "/", "")
         track.duration_seconds = duration
         track.bitrate_kbps = target_kbps
@@ -279,7 +269,6 @@ def start_pipeline_for_upload(self, track_id: str):
             ]
         )
 
-        # Cleanup incoming temp file
         try:
             work_in.unlink(missing_ok=True)
         except Exception as e:
@@ -298,7 +287,6 @@ def start_pipeline_for_upload(self, track_id: str):
         track.error_message = str(exc)[:4096]
         track.save(update_fields=["state", "error_message", "updated_at"])
         try:
-            # attempt retry (Celery will handle max_retries)
             raise self.retry(exc=exc, countdown=30)
         except self.MaxRetriesExceededError:
             logger.error("Max retries exceeded for track %s", track_id)

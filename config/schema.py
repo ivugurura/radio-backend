@@ -21,7 +21,6 @@ class Query(
     ChatQuery,
     graphene.ObjectType,
 ):
-    # Root-level query composition
     health = graphene.String(description="Health check field")
 
     def resolve_health(root, info):

@@ -68,15 +68,13 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
                 errors.append({"event": evt, "error": "missing track id"})
                 continue
 
-            # Resolve track:
+            # Resolve track: try UUID match, then filename, then title, in that order.
             track = None
-            # 1) UUID direct
             try:
                 track_uuid = uuid.UUID(str(track_token))
                 track = Track.objects.filter(studio=studio, id=track_uuid).first()
             except Exception:
                 pass
-            # 2) processed_rel_path match (filename)
             if track is None:
                 track = (
                     Track.objects.filter(
@@ -85,7 +83,6 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
                     .order_by("-created_at")
                     .first()
                 )
-            # 3) title fallback
             if track is None:
                 track = Track.objects.filter(
                     studio=studio, title=str(track_token)
@@ -98,7 +95,6 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
             if etype == EVENT_START:
                 if not started_at:
                     started_at = timezone.now()
-                # Determine next sequence
                 last = (
                     PlayEvent.objects.filter(studio=studio)
                     .order_by("-sequence")
@@ -115,7 +111,6 @@ def ingest_play_events(request: HttpRequest, studio_slug: str):
                 created += 1
 
             elif etype == EVENT_END:
-                # Close existing event if found
                 open_ev = (
                     PlayEvent.objects.filter(
                         studio=studio, track=track, ended_at__isnull=True

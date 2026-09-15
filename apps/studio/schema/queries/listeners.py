@@ -22,10 +22,7 @@ class ListenerQuery(graphene.ObjectType):
     def resolve_listener_overview(
         self, info, studio_id: str, range: str = "LAST_24_HOURS"
     ):
-        # Resolve studio (by pk/slug/code as needed)
         studio = get_studio(studio_id)
-        # import pdb
-        # pdb.set_trace()
         if not studio:
             return ListenerOverview(
                 studio_id="",
@@ -43,12 +40,10 @@ class ListenerQuery(graphene.ObjectType):
         else:
             since = now - datetime.timedelta(days=1)
 
-        # Active now = open sessions (ended_at is null)
         active_now = ListenerSession.objects.filter(
             studio=studio, last_seen__gte=now - GRACE_PERIOD
         ).count()
 
-        # Peaks and minutes from buckets (prefer MINUTE granularity)
         minute_buckets = ListenerStatBucket.objects.filter(
             studio=studio, interval="MINUTE", bucket_start__gte=since
         )
@@ -56,7 +51,6 @@ class ListenerQuery(graphene.ObjectType):
         peak_last_hour = 0
         listener_minutes_last_24h = 0
 
-        # Compute last hour window
         one_hour_ago = now - datetime.timedelta(hours=1)
         for b in minute_buckets:
             listener_minutes_last_24h += b.listener_minutes or 0
@@ -83,7 +77,6 @@ class ListenerQuery(graphene.ObjectType):
                 except Exception:
                     continue
         else:
-            # Fallback to active sessions aggregation
             qs = ListenerSession.objects.filter(
                 studio=studio, ended_at__isnull=True
             ).values_list("country", flat=True)

@@ -58,16 +58,11 @@ class DashboardQuery(graphene.ObjectType):
             since = now - datetime.timedelta(minutes=90)
             target_span = datetime.timedelta(minutes=90)
 
-        # Pick interval:
-        # - If span <= 2h -> MINUTE
-        # - If 2h < span <= 30h -> use MINUTE (optionally downsample)
-        # - If 30h < span <= 7 days -> prefer FIVE_MIN; fallback to HOUR
         if target_span <= datetime.timedelta(hours=2):
             interval = "MINUTE"
         elif target_span <= datetime.timedelta(hours=30):
             interval = "MINUTE"
         else:
-            # Attempt FIVE_MIN buckets; if none exist fall back to HOUR
             has_five = ListenerStatBucket.objects.filter(
                 studio=studio, interval="FIVE_MIN", bucket_start__gte=since
             ).exists()
@@ -81,10 +76,10 @@ class DashboardQuery(graphene.ObjectType):
         peak_point = None
         peak_val = -1
 
-        # Optional downsampling for 24h range (keep every 3rd MINUTE bucket)
+        # Downsample 24h range to every 3rd MINUTE bucket to keep point density reasonable
         for idx, b in enumerate(buckets):
             if interval == "MINUTE" and range == TimeRange.LAST_24_HOURS.value:
-                if idx % 3 != 0:  # skip for density
+                if idx % 3 != 0:
                     continue
             active = b.active_peak or 0
             p = ListeningTrendPoint(ts=b.bucket_start, active=active)
@@ -163,7 +158,6 @@ class DashboardQuery(graphene.ObjectType):
             )
 
         now = timezone.now()
-        # Listening seconds: sum of listener_minutes in last 30 days * 60
         thirty_days_ago = now - datetime.timedelta(days=30)
         minutes_sum = (
             ListenerStatBucket.objects.filter(
@@ -182,7 +176,6 @@ class DashboardQuery(graphene.ObjectType):
         )
         disk_used_gb = float(upload_bytes) / (1024**3)
 
-        # Quotas via env or defaults
         listening_quota = int(
             os.getenv("LISTENING_SECONDS_QUOTA", "5400000")  # e.g., 1500 hours
         )

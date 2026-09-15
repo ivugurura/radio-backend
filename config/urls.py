@@ -29,7 +29,6 @@ from apps.users.views import refresh_token_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Enable GraphiQL in dev
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
     # Authentication endpoints
     path("api/auth/refresh", refresh_token_view, name="refresh-token"),

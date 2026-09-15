@@ -114,7 +114,6 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     [f"listener_ingest:{studio.pk}"],
                 )
 
-            # Upsert every ListenerSession in one statement.
             objs = []
             for s in sessions:
                 s_id = s.get("id")
