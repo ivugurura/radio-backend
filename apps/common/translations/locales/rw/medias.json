@@ -1,0 +1,8 @@
+{
+  "invalid_upload_token": "Ikimenyetso cyo kohereza si cyo",
+  "missing_content_range": "Umutwe wa Content-Range urabuze",
+  "invalid_content_range": "Imiterere y'umutwe wa Content-Range si yo",
+  "track_not_found": "Indirimbo ntiyabonetse",
+  "studio_not_found": "Sitidiyo ntiyabonetse",
+  "auth_required": "Ugomba kwinjira mbere"
+}

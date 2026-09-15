@@ -5,6 +5,7 @@ import graphene
 from django.db import transaction
 from graphql_jwt.decorators import login_required
 
+from apps.common.translations import translate
 from apps.medias.models import Track, UploadSession
 from apps.medias.services.delete import delete_track_files
 from apps.medias.services.upload import (
@@ -106,7 +107,7 @@ class DeleteTrack(graphene.Mutation):
     def mutate(cls, root, info, track_id):
         user = info.context.user
         if not user or not user.is_authenticated:
-            raise Exception("auth required")
+            raise Exception(translate("medias.auth_required"))
 
         try:
             track = Track.objects.select_related("studio", "upload_session").get(

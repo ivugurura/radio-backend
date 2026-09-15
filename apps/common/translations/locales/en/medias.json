@@ -1,0 +1,8 @@
+{
+  "invalid_upload_token": "Invalid upload token",
+  "missing_content_range": "Missing Content-Range header",
+  "invalid_content_range": "Invalid Content-Range header format",
+  "track_not_found": "Track not found",
+  "studio_not_found": "Studio not found",
+  "auth_required": "Authentication required"
+}

@@ -1,6 +1,7 @@
 import graphene
 from graphql_jwt.decorators import login_required
 
+from apps.common.translations import translate
 from apps.studio.schema.queries.streaming import _build_streaming_config
 from apps.studio.schema.types import StreamingConfig
 from apps.studio.services.helpers import (
@@ -20,9 +21,9 @@ class RegenerateStreamingCredential(graphene.Mutation):
     def mutate(self, info, studio_id: str):
         studio = get_studio(studio_id)
         if not studio:
-            raise Exception("Studio not found")
+            raise Exception(translate("studio.studio_not_found"))
         if not can_manage_streaming_credential(info.context.user, studio):
-            raise Exception("Not authorized to rotate streaming credentials")
+            raise Exception(translate("studio.not_authorized_rotate"))
         regenerate_streaming_credential(studio)
         return RegenerateStreamingCredential(
             streaming_config=_build_streaming_config(studio)

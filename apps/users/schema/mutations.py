@@ -5,6 +5,7 @@ from django.db.models import Q
 from graphql_jwt.shortcuts import get_token
 from rest_framework.authtoken.models import Token
 
+from apps.common.translations import translate
 from apps.users.models import User
 from apps.users.types.user_types import UserType
 
@@ -25,7 +26,7 @@ class RegisterUser(graphene.Mutation):
 
     def mutate(self, info, user_name, email, **kwargs):
         if User.objects.filter(Q(user_name=user_name) | Q(email=email)).exists():
-            raise Exception("Username already taken")
+            raise Exception(translate("auth.username_taken"))
 
         user = User.objects.create_user(user_name=user_name, email=email, **kwargs)
         # Immediately issue tokens (optional)
@@ -45,7 +46,7 @@ class LoginUser(graphene.Mutation):
     def mutate(self, info, email, password):
         user = authenticate(username=email, password=password)
         if not user:
-            raise Exception("Invalid credentials")
+            raise Exception(translate("auth.invalid_credentials"))
         token = graphql_jwt.shortcuts.get_token(user)
         rest_payload = Token.objects.get_or_create(user=user)
 
