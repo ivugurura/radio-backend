@@ -1,6 +1,7 @@
 import graphene
 from django.conf import settings
 
+from apps.common.translations import translate
 from apps.studio.schema.types import StreamingConfig
 from apps.studio.services.helpers import (
     can_manage_streaming_credential,
@@ -38,5 +39,5 @@ class StreamingQuery(graphene.ObjectType):
         if not studio:
             return None
         if not can_manage_streaming_credential(info.context.user, studio):
-            raise Exception("Not authorized to view streaming credentials")
+            raise Exception(translate("studio.not_authorized_view"))
         return _build_streaming_config(studio)
