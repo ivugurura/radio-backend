@@ -40,6 +40,12 @@ def can_manage_streaming_credential(user, studio: Studio) -> bool:
     ).exists()
 
 
+def can_control_playback(user, studio: Studio) -> bool:
+    """Playback control (e.g. skipping AutoDJ tracks) is limited to the same
+    OWNER/ADMIN members who manage the studio's stream."""
+    return can_manage_streaming_credential(user, studio)
+
+
 def _generate_username(studio: Studio) -> str:
     return studio.slug
 
