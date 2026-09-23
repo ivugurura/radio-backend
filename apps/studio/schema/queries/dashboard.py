@@ -25,7 +25,8 @@ class DashboardQuery(graphene.ObjectType):
     listening_trend = graphene.Field(
         ListeningTrend,
         studio_id=graphene.String(required=True),
-        range=graphene.Argument(TimeRange, default_value=TimeRange.LAST_90_MIN),
+        range=graphene.Argument(
+            TimeRange, default_value=TimeRange.LAST_90_MIN),
     )
     listening_summary_count = graphene.Field(
         ListeningSummary,
@@ -195,7 +196,8 @@ class DashboardQuery(graphene.ObjectType):
         if not studio:
             return CurrentQueue(items=[])
 
-        all_events = PlayEvent.objects.filter(studio=studio, track__isnull=False)
+        all_events = PlayEvent.objects.filter(
+            studio=studio, track__isnull=False)
 
         # Current playing = ended_at is null (if multiple, take latest started/sequence)
         current_event = (
@@ -204,7 +206,8 @@ class DashboardQuery(graphene.ObjectType):
             .first()
         )
         if not current_event:
-            current_event = all_events.order_by("-started_at", "-sequence").first()
+            current_event = all_events.order_by(
+                "-started_at", "-sequence").first()
         if not current_event:
             return CurrentQueue(items=[])
 
@@ -220,8 +223,7 @@ class DashboardQuery(graphene.ObjectType):
                     started_at=current_event.started_at,
                     sequence__lt=current_event.sequence,
                 )
-            )
-            .order_by("-started_at", "-sequence")[:candidate_count]
+            ).order_by("-started_at", "-sequence")[:candidate_count]
         )
         after_candidates = list(
             all_events.filter(
@@ -230,8 +232,7 @@ class DashboardQuery(graphene.ObjectType):
                     started_at=current_event.started_at,
                     sequence__gt=current_event.sequence,
                 )
-            )
-            .order_by("started_at", "sequence")[:candidate_count]
+            ).order_by("started_at", "sequence")[:candidate_count]
         )
 
         used_track_ids = set()
@@ -304,10 +305,12 @@ class DashboardQuery(graphene.ObjectType):
                     after_events.append(ev)
                     missing -= 1
 
-        timeline_events = list(reversed(before_events)) + [current_event] + after_events
+        timeline_events = list(reversed(before_events)) + \
+            [current_event] + after_events
         items = []
         for ev in timeline_events:
-            queue_item = to_queue_item(ev, is_current=ev.id == current_event.id)
+            queue_item = to_queue_item(
+                ev, is_current=ev.id == current_event.id)
             if queue_item:
                 items.append(queue_item)
 

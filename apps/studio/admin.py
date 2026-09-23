@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.studio.models import Studio, StreamingCredential
+from apps.studio.models import StreamingCredential, Studio
 
 
 @admin.register(Studio)
