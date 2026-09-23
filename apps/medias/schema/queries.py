@@ -1,4 +1,5 @@
 import graphene
+from django.db.models import Q
 
 from apps.medias.models import Track
 from apps.medias.schema.types import TrackConnection

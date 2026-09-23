@@ -27,15 +27,14 @@ def delete_track_files(track: Track) -> None:
     """
     base = Path(settings.RADIO_STUDIOS_ROOT)
 
+    # processed_rel_path is relative to the studio directory, not the studios root.
     if track.processed_rel_path:
-        _safe_unlink(base / track.processed_rel_path)
+        _safe_unlink(base / track.studio.slug / track.processed_rel_path)
 
     up = getattr(track, "upload_session", None)
     if up and up.temp_rel_path:
         _safe_unlink(base / up.temp_rel_path)
 
-    target_kbps = track.bitrate_kbps or getattr(
-        settings, "DEFAULT_TARGET_BR_KBPS", 128
-    )
+    target_kbps = track.bitrate_kbps or getattr(settings, "DEFAULT_TARGET_BR_KBPS", 128)
     paths = studio_paths(track.studio, target_kbps)
     _safe_unlink(paths.processing / f"{track.id}.mp3")
