@@ -31,8 +31,11 @@ def skip_track(studio_slug: str) -> None:
             print(f"Successfully requested skip for studio {studio_slug}")
             return
     except urllib.error.HTTPError as exc:
+        print(
+            f"radio-studio returned HTTP {exc.code} for studio {studio_slug}: {exc.reason}")
         raise StudioControlError(_error_message(exc)) from exc
     except (urllib.error.URLError, TimeoutError) as exc:
+        print(f"radio-studio unreachable for studio {studio_slug}: {exc}")
         raise StudioControlError(str(exc), unreachable=True) from exc
 
 
