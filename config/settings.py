@@ -64,7 +64,6 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'OPTIONS']
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "daphne",
     "django.contrib.admin",
@@ -234,6 +233,10 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "")
 
 STUDIO_TOKEN = os.getenv("STUDIO_TOKEN", "")
+
+# Base URL the backend reaches radio-studio on for control actions (e.g. skip).
+# Prefer the private address; Nginx does not expose these actions publicly.
+STUDIO_INTERNAL_URL = os.getenv("STUDIO_INTERNAL_URL", "")
 
 # Encrypts StreamingCredential.password_encrypted at rest. Generate with:
 #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
