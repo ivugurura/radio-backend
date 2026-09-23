@@ -54,7 +54,8 @@ def _run_with_deadlock_retry(fn, attempts: int = 3, base_delay: float = 0.1):
         except OperationalError as exc:
             if "deadlock detected" not in str(exc) or attempt == attempts - 1:
                 raise
-            time.sleep(base_delay * (2**attempt) + random.uniform(0, base_delay))
+            time.sleep(base_delay * (2**attempt) +
+                       random.uniform(0, base_delay))
 
 
 @csrf_exempt
@@ -178,11 +179,17 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                 if not interval or not bucket_start:
                     continue
 
-                active_peak = int(b.get("active_peak", 0))
-                listener_minutes = int(b.get("listener_minutes", 0))
-                countries = b.get("countries_json", {})
+                active_peak = int(b.get("active_peak", 0) or 0)
+                listener_minutes = int(b.get("listener_minutes", 0) or 0)
+                # "countries" is the key sent by older studio builds.
+                countries = b.get("countries_json") or b.get("countries") or {}
+                if not isinstance(countries, dict):
+                    countries = {}
 
-                obj, created = ListenerStatBucket.objects.update_or_create(
+                (
+                    obj,
+                    created,
+                ) = ListenerStatBucket.objects.select_for_update().get_or_create(
                     studio=studio,
                     interval=interval,
                     bucket_start=bucket_start,
@@ -193,34 +200,29 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     },
                 )
                 if not created:
-                    changed = False
-                    if active_peak > obj.active_peak:
-                        obj.active_peak = active_peak
-                        changed = True
-                    if listener_minutes:
-                        obj.listener_minutes = listener_minutes
-                        changed = True
-                    if changed:
-                        obj.save(update_fields=["active_peak", "listener_minutes"])
-                    if isinstance(countries, dict) and countries:
-                        merged = dict(obj.countries_json or {})
-                        for country, count in countries.items():
-                            try:
-                                merged[country] = int(merged.get(country, 0)) + int(
-                                    count or 0
-                                )
-                            except Exception:
-                                continue
-                        obj.countries_json = merged
-                        changed = True
-                    if changed:
-                        obj.save(
-                            update_fields=[
-                                "active_peak",
-                                "listener_minutes",
-                                "countries_json",
-                            ]
-                        )
+                    # A bucket is normally sent once; a resend (retry, restart)
+                    # carries the same or newer values, so merge by max to stay
+                    # idempotent.
+                    obj.active_peak = max(obj.active_peak, active_peak)
+                    obj.listener_minutes = max(
+                        obj.listener_minutes, listener_minutes)
+                    merged = dict(obj.countries_json or {})
+                    for country, count in countries.items():
+                        try:
+                            merged[country] = max(
+                                int(merged.get(country, 0)
+                                    or 0), int(count or 0)
+                            )
+                        except (TypeError, ValueError):
+                            continue
+                    obj.countries_json = merged
+                    obj.save(
+                        update_fields=[
+                            "active_peak",
+                            "listener_minutes",
+                            "countries_json",
+                        ]
+                    )
                 upserted += 1
 
         return inserted, updated, upserted
