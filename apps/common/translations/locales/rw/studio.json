@@ -1,5 +1,8 @@
 {
   "studio_not_found": "Sitidiyo ntiyabonetse",
   "not_authorized_rotate": "Ntabwo wemerewe guhindura amabanga yo gutambutsa",
-  "not_authorized_view": "Ntabwo wemerewe kureba amabanga yo gutambutsa"
+  "not_authorized_view": "Ntabwo wemerewe kureba amabanga yo gutambutsa",
+  "not_authorized_skip": "Ntabwo wemerewe gusimbuka indirimbo",
+  "skip_failed": "Ntibyashobotse gusimbuka indirimbo: {reason}",
+  "studio_unreachable": "Sitidiyo ya radiyo ntiboneka"
 }
