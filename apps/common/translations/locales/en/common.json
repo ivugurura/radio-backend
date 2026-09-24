@@ -1,6 +1,5 @@
 {
   "error": "Something went wrong",
   "not_found": "Not found",
-  "forbidden": "You do not have permission to do that",
-  "auth_required": "Authentication required"
+  "forbidden": "You do not have permission to do that"
 }

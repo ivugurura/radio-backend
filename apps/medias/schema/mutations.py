@@ -107,7 +107,7 @@ class DeleteTrack(graphene.Mutation):
     def mutate(cls, root, info, track_id):
         user = info.context.user
         if not user or not user.is_authenticated:
-            raise Exception(translate("medias.auth_required"))
+            raise Exception(translate("auth.auth_required"))
 
         try:
             track = Track.objects.select_related("studio", "upload_session").get(
