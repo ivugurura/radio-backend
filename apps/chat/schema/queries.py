@@ -6,6 +6,8 @@ from apps.chat.models import ChatMessage, ChatMute
 from apps.chat.schema.types import ChatMessageType, ChatMuteType
 from apps.studio.services.helpers import get_studio
 
+MAX_CHAT_PAGE_SIZE = 10
+
 
 class ChatQuery(graphene.ObjectType):
     chat_messages = graphene.List(
@@ -29,10 +31,13 @@ class ChatQuery(graphene.ObjectType):
             if info.context.user.is_authenticated
             else ChatMessage.objects
         )
-        qs = manager.filter(studio=studio)
+        qs = manager.filter(studio=studio).select_related(
+            "author", "quoted_message", "quoted_message__author"
+        )
         if before:
             qs = qs.filter(created_at__lt=before)
 
+        limit = max(1, min(limit, MAX_CHAT_PAGE_SIZE))
         messages = list(qs.order_by("-created_at")[:limit])
         return list(reversed(messages))
 
