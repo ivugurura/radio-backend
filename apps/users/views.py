@@ -4,61 +4,81 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from graphql_jwt.exceptions import JSONWebTokenError
-from graphql_jwt.shortcuts import get_refresh_token, get_token
-from graphql_jwt.utils import get_payload, get_user_by_payload
+from graphene_django.views import GraphQLView
+from graphql_jwt.exceptions import JSONWebTokenExpired
+from graphql_jwt.refresh_token.utils import get_refresh_token_model
+from graphql_jwt.shortcuts import create_refresh_token, get_token
+
+from apps.common.translations import translate
+
+
+def _session_expired(status):
+    return JsonResponse({'error': translate('auth.session_expired')}, status=status)
+
+
+class AuthAwareGraphQLView(GraphQLView):
+    """Marks expired access tokens so the UI refreshes instead of showing an error."""
+
+    @staticmethod
+    def format_error(error):
+        formatted = GraphQLView.format_error(error)
+        if isinstance(getattr(error, 'original_error', None), JSONWebTokenExpired):
+            formatted['extensions'] = {
+                **formatted.get('extensions', {}),
+                'code': 'UNAUTHENTICATED',
+            }
+        return formatted
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class RefreshTokenView(View):
     """
-    API endpoint to refresh JWT access tokens using a valid refresh token.
+    API endpoint to exchange a refresh token for a new access and refresh token.
+    The submitted refresh token is revoked, so each one works only once.
 
     POST /api/auth/refresh
     Body: {"refresh_token": "<your_refresh_token>"}
 
     Returns:
-        - 200: New access token
+        - 200: {"token": "<access_token>", "refresh_token": "<refresh_token>"}
         - 400: Missing refresh token
-        - 401: Invalid or expired refresh token
+        - 401: Invalid, revoked or expired refresh token
     """
 
     def post(self, request):
         try:
-            body = json.loads(request.body.decode('utf-8'))
-            refresh_token = body.get('refresh_token')
+            body = json.loads(request.body)
+        except ValueError:
+            body = None
 
-            if not refresh_token:
-                return JsonResponse({'error': 'refresh_token is required'}, status=400)
+        token = body.get('refresh_token') if isinstance(body, dict) else None
+        if not token or not isinstance(token, str):
+            return _session_expired(status=400)
 
-            try:
-                payload = get_payload(refresh_token)
-                user = get_user_by_payload(payload)
+        # Lock the row so concurrent requests can't both rotate the same token.
+        refresh_token = (
+            get_refresh_token_model()
+            .objects.select_for_update(of=('self',))
+            .select_related('user')
+            .filter(token=token, revoked__isnull=True)
+            .first()
+        )
+        if (
+            refresh_token is None
+            or refresh_token.is_expired(request)
+            or not refresh_token.user.is_active
+        ):
+            return _session_expired(status=401)
 
-                if not user:
-                    return JsonResponse({'error': 'Invalid refresh token'}, status=401)
+        user = refresh_token.user
+        refresh_token.revoke(request)
 
-                new_token = get_token(user)
-                new_refresh_token = get_refresh_token(user)
-
-                return JsonResponse(
-                    {
-                        'token': new_token,
-                        'refresh_token': new_refresh_token,
-                        'user': user,
-                    },
-                    status=200,
-                )
-
-            except JSONWebTokenError as e:
-                return JsonResponse(
-                    {'error': f'Invalid or expired refresh token: {str(e)}'}, status=401
-                )
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON in request body'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
+        return JsonResponse(
+            {
+                'token': get_token(user),
+                'refresh_token': create_refresh_token(user).get_token(),
+            }
+        )
 
 
 refresh_token_view = RefreshTokenView.as_view()

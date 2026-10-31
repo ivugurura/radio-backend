@@ -18,18 +18,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
-from graphene_django.views import GraphQLView
 
 from apps.medias.views import serve_track, upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.api.streaming_config import streaming_config
 from apps.studio.views import studio_playlist
-from apps.users.views import refresh_token_view
+from apps.users.views import AuthAwareGraphQLView, refresh_token_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
+    path("graphql", csrf_exempt(AuthAwareGraphQLView.as_view(graphiql=True))),
     # Authentication endpoints
     path("api/auth/refresh", refresh_token_view, name="refresh-token"),
     # API endpoints

@@ -2,7 +2,7 @@ import graphene
 import graphql_jwt
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from graphql_jwt.shortcuts import get_token
+from graphql_jwt.shortcuts import create_refresh_token, get_token
 from rest_framework.authtoken.models import Token
 
 from apps.common.translations import translate
@@ -40,6 +40,7 @@ class LoginUser(graphene.Mutation):
 
     user = graphene.Field(UserType)
     token = graphene.String()
+    refresh_token = graphene.String()
     rest_token = graphene.String()
 
     def mutate(self, info, email, password):
@@ -49,7 +50,12 @@ class LoginUser(graphene.Mutation):
         token = graphql_jwt.shortcuts.get_token(user)
         rest_payload = Token.objects.get_or_create(user=user)
 
-        return LoginUser(user=user, token=token, rest_token=rest_payload[0])
+        return LoginUser(
+            user=user,
+            token=token,
+            refresh_token=create_refresh_token(user).get_token(),
+            rest_token=rest_payload[0],
+        )
 
 
 class UserMutations(graphene.ObjectType):

@@ -213,9 +213,7 @@ GRAPHQL_JWT = {
     "JWT_AUTH_HEADER_PREFIX": "RRV",
     "JWT_EXPIRATION_DELTA": datetime.timedelta(minutes=30),
     "JWT_REFRESH_EXPIRATION_DELTA": datetime.timedelta(days=7),
-    # "JWT_LONG_RUNNING_REFRESH_TOKEN": True,  # allows refresh token usage
-    # Optional: rotate tokens
-    # "JWT_ROTATE_REFRESH_TOKENS": True,
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
 }
 
 AUTHENTICATION_BACKENDS = [
