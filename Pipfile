@@ -5,6 +5,7 @@ name = "pypi"
 
 [scripts]
 start = "python manage.py runserver"
+migrate = "python manage.py migrate"
 start-celery = "celery -A config worker -l info"
 create-superuser = "python manage.py createsuperuser"
 
