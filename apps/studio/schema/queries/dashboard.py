@@ -74,8 +74,6 @@ class DashboardQuery(graphene.ObjectType):
         ).order_by("bucket_start")
 
         points = []
-        peak_point = None
-        peak_val = -1
 
         # Downsample 24h range to every 3rd MINUTE bucket to keep point density reasonable
         for idx, b in enumerate(buckets):
@@ -83,11 +81,26 @@ class DashboardQuery(graphene.ObjectType):
                 if idx % 3 != 0:
                     continue
             active = b.active_peak or 0
-            p = ListeningTrendPoint(ts=b.bucket_start, active=active)
-            points.append(p)
-            if active > peak_val:
-                peak_val = active
-                peak_point = p
+            points.append(ListeningTrendPoint(ts=b.bucket_start, active=active))
+
+        # The peak is always today's (UTC day, as in the summary), whatever the
+        # charted range. Ties keep the earliest minute to reach that peak.
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        peak_bucket = (
+            ListenerStatBucket.objects.filter(
+                studio=studio,
+                interval="MINUTE",
+                bucket_start__gte=today_start,
+                active_peak__gt=0,
+            )
+            .order_by("-active_peak", "bucket_start")
+            .first()
+        )
+        peak_point = None
+        if peak_bucket:
+            peak_point = ListeningTrendPoint(
+                ts=peak_bucket.bucket_start, active=peak_bucket.active_peak
+            )
 
         return ListeningTrend(points=points, peak=peak_point)
 
