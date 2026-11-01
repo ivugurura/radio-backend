@@ -6,6 +6,7 @@ import uuid
 from django.conf import settings
 from django.db import OperationalError, connection, transaction
 from django.http import HttpRequest, JsonResponse
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -32,6 +33,18 @@ def _parse_iso(dt_str: str):
     if dt_str is None:
         return None
     return parse_datetime(dt_str)
+
+
+def _parse_session_ids(raw) -> list[uuid.UUID]:
+    if not isinstance(raw, list):
+        return []
+    ids = []
+    for value in raw:
+        try:
+            ids.append(uuid.UUID(value))
+        except (AttributeError, TypeError, ValueError):
+            continue
+    return ids
 
 
 def _bearer_token(req: HttpRequest) -> str:
@@ -89,6 +102,7 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
 
     sessions = payload.get("sessions") or []
     buckets = payload.get("buckets") or []
+    connected_ids = _parse_session_ids(payload.get("connected_session_ids"))
 
     # Deterministic ordering so that two ingest requests that overlap in time
     # always take row locks in the same order (otherwise concurrent flushes
@@ -170,6 +184,15 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     ],
                 )
 
+            # The studio only resends a session's details occasionally, but names
+            # every connected listener on each flush. listenerOverview.activeNow
+            # relies on last_seen staying fresh for all of them.
+            touched = 0
+            if connected_ids:
+                touched = ListenerSession.objects.filter(
+                    studio=studio, pk__in=connected_ids
+                ).update(last_seen=timezone.now())
+
             # Upsert ListenerStatBucket by unique (studio, interval, bucket_start)
             for b in buckets:
                 interval = (b.get("interval", "")).upper()
@@ -225,9 +248,9 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     )
                 upserted += 1
 
-        return inserted, updated, upserted
+        return inserted, updated, touched, upserted
 
-    inserted, updated, upserted = _run_with_deadlock_retry(_apply)
+    inserted, updated, touched, upserted = _run_with_deadlock_retry(_apply)
 
     return JsonResponse(
         {
@@ -235,6 +258,7 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
             "studio": str(studio.pk),
             "inserted_sessions": inserted,
             "updated_sessions": updated,
+            "touched_sessions": touched,
             "upserted_buckets": upserted,
         },
         status=200,
