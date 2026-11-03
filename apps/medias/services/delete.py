@@ -1,40 +1,74 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, List
 
 from django.conf import settings
+from django.db import transaction
 
-from apps.medias.models import Track
-from apps.medias.services.paths import studio_paths
+from apps.medias.models import Track, UploadSession
 
-
-def _safe_unlink(p: Optional[Path]) -> None:
-    try:
-        if p and p.exists():
-            p.unlink()
-    except Exception:
-        # Intentionally ignore file removal errors, we don't want to block deletion
-        pass
+logger = logging.getLogger(__name__)
 
 
-def delete_track_files(track: Track) -> None:
+def _track_files(track: Track) -> List[Path]:
     """
-    Remove any files associated with this track from local disk:
-    - processed file in library (processed_rel_path)
-    - incoming partial upload (.part)
-    - processing artifact (processing/{track.id}.mp3)
+    Every file on disk that belongs to this track:
+    - processed MP3 (processed_rel_path) and any other bitrate in library/mp3/*/
+    - processing artifacts (processing/{track.id}.*)
+    - waveform and artwork (waveform/{track.id}.*, artwork/{track.id}.*)
+    - files recorded as TrackAssets (storage_key, relative to the studio dir)
+    - the incoming partial upload (.part) of its upload session
     """
-    base = Path(settings.RADIO_STUDIOS_ROOT)
+    root = Path(settings.RADIO_STUDIOS_ROOT)
+    studio_root = root / track.studio.slug
+    tid = str(track.id)
 
-    # processed_rel_path is relative to the studio directory, not the studios root.
+    files: List[Path] = []
     if track.processed_rel_path:
-        _safe_unlink(base / track.studio.slug / track.processed_rel_path)
-
-    up = getattr(track, "upload_session", None)
+        files.append(studio_root / track.processed_rel_path)
+    files += studio_root.glob(f"library/mp3/*/{tid}.mp3")
+    for folder in ("processing", "waveform", "artwork"):
+        files += (studio_root / folder).glob(f"{tid}.*")
+    files += [
+        studio_root / key
+        for key in track.assets.values_list("storage_key", flat=True)
+        if key
+    ]
+    up = track.upload_session
     if up and up.temp_rel_path:
-        _safe_unlink(base / up.temp_rel_path)
+        files.append(root / up.temp_rel_path)
+    return files
 
-    target_kbps = track.bitrate_kbps or getattr(settings, "DEFAULT_TARGET_BR_KBPS", 128)
-    paths = studio_paths(track.studio, target_kbps)
-    _safe_unlink(paths.processing / f"{track.id}.mp3")
+
+def _unlink_all(files: Iterable[Path]) -> None:
+    root = Path(settings.RADIO_STUDIOS_ROOT).resolve()
+    for path in set(files):
+        resolved = path.resolve()
+        # Never follow a stored path outside the studios tree.
+        if not resolved.is_relative_to(root):
+            logger.warning("Refusing to delete %s: outside %s", resolved, root)
+            continue
+        try:
+            resolved.unlink(missing_ok=True)
+        except OSError as e:
+            # A leftover file must not undo a delete the user already saw succeed.
+            logger.warning("Could not delete %s: %s", resolved, e)
+
+
+def hard_delete_track(track: Track) -> None:
+    """
+    Permanently remove a track: its files and its database rows.
+
+    The DB cascade removes assets, transcode jobs, track tags and playlist
+    items; play history keeps its rows with track set to NULL. Files are
+    unlinked only after the transaction commits, so a rollback never leaves
+    rows pointing at missing files.
+    """
+    files = _track_files(track)  # collect before the asset/session rows go
+    up = track.upload_session
+    track.hard_delete()
+    if up:
+        UploadSession.all_objects.filter(id=up.id).hard_delete()
+    transaction.on_commit(lambda: _unlink_all(files))

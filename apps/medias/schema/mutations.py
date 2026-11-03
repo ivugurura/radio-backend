@@ -8,7 +8,7 @@ from graphql_jwt.decorators import login_required
 from apps.common.translations import translate
 from apps.medias.models import Track, UploadSession
 from apps.medias.schema.types import TrackType
-from apps.medias.services.delete import delete_track_files
+from apps.medias.services.delete import hard_delete_track
 from apps.medias.services.duplicates import find_exact_duplicate
 from apps.medias.services.upload import (
     cancel_upload,
@@ -31,8 +31,7 @@ def _release_hash(track: Track) -> None:
     if track.state == Track.State.UPLOADING and up and not up.finalized:
         cancel_upload(up)
         return
-    delete_track_files(track)
-    track.delete()
+    hard_delete_track(track)
 
 
 class RequestUpload(graphene.Mutation):
@@ -176,19 +175,7 @@ class DeleteTrack(graphene.Mutation):
 
         # TODO: permission check (user can manage track in this studio)
 
-        delete_track_files(track)
-
-        # Also removes the related UploadSession; drop this block to retain upload history.
-        up = track.upload_session
-        track.delete()
-
-        if up:
-            if not UploadSession.objects.filter(id=up.id).exists():
-                try:
-                    up.delete()
-                except Exception:
-                    pass
-
+        hard_delete_track(track)
         return DeleteTrack(ok=True)
 
 

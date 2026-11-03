@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.medias.models import Track, UploadSession
+from apps.medias.services.delete import hard_delete_track
 from apps.medias.services.paths import relpath_from_root, studio_paths
 from apps.studio.models import Studio
 
@@ -101,9 +102,13 @@ def cancel_upload(upload: UploadSession) -> None:
     """Discard an unfinished upload: its partial file, its track and the session."""
     if upload.finalized:
         raise UploadConflictError("Upload already finalized")
+    tracks = Track.objects.select_related("studio", "upload_session").filter(
+        upload_session=upload, state=Track.State.UPLOADING
+    )
+    for track in tracks:
+        hard_delete_track(track)  # also removes the session and its .part file
     _remove_part_file(upload)
-    Track.objects.filter(upload_session=upload, state=Track.State.UPLOADING).delete()
-    upload.delete()
+    UploadSession.all_objects.filter(id=upload.id).hard_delete()
 
 
 def expire_stale_uploads(older_than: timedelta) -> int:
@@ -122,8 +127,8 @@ def expire_stale_uploads(older_than: timedelta) -> int:
             error_message="Upload interrupted before it finished",
             updated_at=timezone.now(),
         )
-        upload.error_message = "expired"
-        upload.delete()
+        # The FAILED track stays visible; its upload_session becomes NULL.
+        upload.hard_delete()
         count += 1
     return count
 
