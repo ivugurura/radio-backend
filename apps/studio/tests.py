@@ -85,3 +85,83 @@ class SkipTrackServiceTests(JSONWebTokenTestCase):
         self.assertEqual(req.get_method(), "POST")
         self.assertEqual(req.full_url, "http://studio/studios/reformation-rw/skip")
         self.assertEqual(req.get_header("Authorization"), "Bearer secret")
+
+
+STUDIO_SETTINGS = """
+query StudioSettings($studioId: String!) {
+  studioSettings(studioId: $studioId) {
+    displayName autoNormalize loudnessTargetLufs sampleRateHz canEdit
+  }
+}
+"""
+
+UPDATE_STUDIO_SETTINGS = """
+mutation UpdateStudioSettings(
+  $studioId: String!, $displayName: String!, $description: String!,
+  $autoNormalize: Boolean!, $loudnessTargetLufs: Float!
+) {
+  updateStudioSettings(
+    studioId: $studioId, displayName: $displayName, description: $description,
+    autoNormalize: $autoNormalize, loudnessTargetLufs: $loudnessTargetLufs
+  ) { studioSettings { displayName loudnessTargetLufs } }
+}
+"""
+
+
+class StudioSettingsTests(JSONWebTokenTestCase):
+    def setUp(self):
+        self.studio = Studio.objects.create(slug="reformation-rw", display_name="RW")
+        self.admin = _make_user(1)
+        StudioMembership.objects.create(
+            studio=self.studio, user=self.admin, role=StudioMembership.Role.ADMIN
+        )
+        self.viewer = _make_user(2)
+        StudioMembership.objects.create(
+            studio=self.studio, user=self.viewer, role=StudioMembership.Role.VIEWER
+        )
+
+    def update(self, **overrides):
+        variables = {
+            "studioId": self.studio.slug,
+            "displayName": "Radio RW",
+            "description": "Gospel radio",
+            "autoNormalize": True,
+            "loudnessTargetLufs": -16,
+            **overrides,
+        }
+        return self.client.execute(UPDATE_STUDIO_SETTINGS, variables)
+
+    def test_settings_report_whether_user_can_edit(self):
+        for user, can_edit in ((self.admin, True), (self.viewer, False)):
+            self.client.authenticate(user)
+            res = self.client.execute(STUDIO_SETTINGS, {"studioId": self.studio.slug})
+            self.assertIsNone(res.errors)
+            settings = res.data["studioSettings"]
+            self.assertEqual(settings["canEdit"], can_edit)
+            self.assertEqual(settings["sampleRateHz"], 48000)
+
+    def test_admin_updates_settings(self):
+        self.client.authenticate(self.admin)
+
+        res = self.update()
+
+        self.assertIsNone(res.errors)
+        self.studio.refresh_from_db()
+        self.assertEqual(self.studio.display_name, "Radio RW")
+        self.assertEqual(float(self.studio.loudness_target_lufs), -16.0)
+
+    def test_viewer_cannot_update(self):
+        self.client.authenticate(self.viewer)
+
+        self.assertIsNotNone(self.update().errors)
+        self.studio.refresh_from_db()
+        self.assertEqual(self.studio.display_name, "RW")
+
+    def test_rejects_blank_name_and_out_of_range_loudness(self):
+        self.client.authenticate(self.admin)
+        for overrides in (
+            {"displayName": "  "},
+            {"loudnessTargetLufs": -40},
+            {"loudnessTargetLufs": 0},
+        ):
+            self.assertIsNotNone(self.update(**overrides).errors, overrides)

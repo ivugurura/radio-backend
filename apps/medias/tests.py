@@ -234,3 +234,16 @@ class MetadataDuplicateTests(UploadCleanupTestBase):
 
         self.assertIsNone(find_metadata_duplicate(new, 241.0))
         self.assertIsNone(find_metadata_duplicate(untagged, 300.0))
+
+
+class LoudnessFilterTests(UploadCleanupTestBase):
+    def test_uses_studio_target_or_skips_when_disabled(self):
+        from apps.medias.tasks import loudness_filter_args
+
+        self.studio.loudness_target_lufs = -16
+        self.assertEqual(
+            loudness_filter_args(self.studio),
+            ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11"],
+        )
+        self.studio.auto_normalize = False
+        self.assertEqual(loudness_filter_args(self.studio), [])

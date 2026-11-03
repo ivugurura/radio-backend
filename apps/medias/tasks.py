@@ -122,6 +122,13 @@ def extract_tags_from_probe(data: Dict) -> Tuple[float, Dict[str, str]]:
     return duration, tags
 
 
+def loudness_filter_args(studio) -> list[str]:
+    """ffmpeg loudnorm args from the studio's settings; none when normalizing is off."""
+    if not studio.auto_normalize:
+        return []
+    return ["-af", f"loudnorm=I={float(studio.loudness_target_lufs):g}:TP=-1.5:LRA=11"]
+
+
 @shared_task(bind=True, max_retries=2, soft_time_limit=60 * 60)
 def start_pipeline_for_upload(self, track_id: str):
     """
@@ -232,8 +239,7 @@ def start_pipeline_for_upload(self, track_id: str):
             "-y",
             "-i",
             str(work_in),
-            "-af",
-            "loudnorm=I=-14:TP=-1.5:LRA=11",
+            *loudness_filter_args(studio),
             "-map_metadata",
             "0",
             "-c:a",

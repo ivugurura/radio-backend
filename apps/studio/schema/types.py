@@ -75,3 +75,17 @@ class StreamingConfig(graphene.ObjectType):
     sample_rate_hz = graphene.Int(required=True)
     channels = graphene.Int(required=True)
     rotated_at = graphene.DateTime()
+
+
+class StudioSettings(graphene.ObjectType):
+    studio_id = graphene.String(required=True)
+    display_name = graphene.String(required=True)
+    description = graphene.String(required=True)
+    auto_normalize = graphene.Boolean(required=True)
+    loudness_target_lufs = graphene.Float(required=True)
+    # Read-only: the audio format has to match radio-studio, the live encoder
+    # and every transcoded library track, so it is not editable from the UI.
+    bitrate_kbps = graphene.Int(required=True)
+    sample_rate_hz = graphene.Int(required=True)
+    channels = graphene.Int(required=True)
+    can_edit = graphene.Boolean(required=True)

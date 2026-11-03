@@ -27,6 +27,11 @@ def get_studio(studio_id: str) -> Studio | None:
     return studio
 
 
+def can_manage_studio_settings(user, studio: Studio) -> bool:
+    """OWNER/ADMIN studio members (or Django staff) may edit studio settings."""
+    return can_manage_streaming_credential(user, studio)
+
+
 def can_manage_streaming_credential(user, studio: Studio) -> bool:
     """OWNER/ADMIN studio members (or Django staff) may view/rotate stream credentials."""
     if not getattr(user, "is_authenticated", False):
