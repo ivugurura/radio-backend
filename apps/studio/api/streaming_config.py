@@ -34,6 +34,9 @@ def streaming_config(request: HttpRequest, studio_slug: str) -> JsonResponse:
             "bitrate_kbps": studio.default_br_kbps,
             "sample_rate_hz": studio.default_sr_hz,
             "channels": studio.default_ch,
+            # Sent to listeners as the stream's icy-name/icy-description.
+            "station_name": studio.display_name,
+            "station_description": studio.description,
         },
         status=200,
     )
