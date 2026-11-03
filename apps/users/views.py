@@ -1,6 +1,6 @@
 import json
 
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -82,3 +82,39 @@ class RefreshTokenView(View):
 
 
 refresh_token_view = RefreshTokenView.as_view()
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LogoutView(View):
+    """
+    API endpoint to end a session by revoking its refresh token, so a copied
+    token can't mint new access tokens after sign-out. Access tokens are
+    stateless and simply expire (JWT_EXPIRATION_DELTA).
+
+    POST /api/auth/logout
+    Body: {"refresh_token": "<your_refresh_token>"}
+
+    Returns 204 whether or not the token was live, so the response doesn't
+    reveal which tokens exist and signing out twice is harmless.
+    """
+
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+        except ValueError:
+            body = None
+
+        token = body.get('refresh_token') if isinstance(body, dict) else None
+        if isinstance(token, str) and token:
+            refresh_token = (
+                get_refresh_token_model()
+                .objects.filter(token=token, revoked__isnull=True)
+                .first()
+            )
+            if refresh_token is not None:
+                refresh_token.revoke(request)
+
+        return HttpResponse(status=204)
+
+
+logout_view = LogoutView.as_view()

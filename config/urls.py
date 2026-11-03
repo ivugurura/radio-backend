@@ -24,13 +24,14 @@ from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.api.streaming_config import streaming_config
 from apps.studio.views import studio_playlist
-from apps.users.views import AuthAwareGraphQLView, refresh_token_view
+from apps.users.views import AuthAwareGraphQLView, logout_view, refresh_token_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql", csrf_exempt(AuthAwareGraphQLView.as_view(graphiql=True))),
     # Authentication endpoints
     path("api/auth/refresh", refresh_token_view, name="refresh-token"),
+    path("api/auth/logout", logout_view, name="logout"),
     # API endpoints
     path("api/uploads/<uuid:upload_id>/chunk", upload_chunk_view, name="upload-chunk"),
     path(
