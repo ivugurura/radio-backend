@@ -10,12 +10,28 @@ from django.utils import timezone
 from graphql_jwt.testcases import JSONWebTokenTestCase
 
 from apps.medias.models import Track, UploadSession
+from apps.medias.services.duplicates import find_metadata_duplicate
 from apps.medias.services.upload import (
     expire_stale_uploads,
     init_upload,
     sweep_orphan_part_files,
 )
 from apps.studio.models.base import Studio
+
+REQUEST_UPLOAD = """
+mutation RequestUpload($studioSlug: String!, $checksum: String) {
+  requestUpload(
+    studioSlug: $studioSlug
+    fileName: "song.mp3"
+    sizeBytes: 10
+    mimeType: "audio/mpeg"
+    checksumSha256: $checksum
+  ) {
+    uploadId
+    duplicateOf { id title }
+  }
+}
+"""
 
 CANCEL_UPLOAD = """
 mutation CancelUpload($uploadId: UUID!) {
@@ -132,3 +148,89 @@ class SweepOrphanPartFilesTests(UploadCleanupTestBase):
         self.assertFalse(old_orphan.exists())
         self.assertTrue(new_orphan.exists())
         self.assertTrue(owned_part.exists())
+
+
+class ExactDuplicateTests(UploadCleanupTestBase):
+    HASH = "a" * 64
+
+    def setUp(self):
+        super().setUp()
+        self.client.authenticate(self.user)
+
+    def request(self):
+        res = self.client.execute(
+            REQUEST_UPLOAD, {"studioSlug": self.studio.slug, "checksum": self.HASH}
+        )
+        self.assertIsNone(res.errors)
+        return res.data["requestUpload"]
+
+    def make_track(self, state, **extra):
+        return Track.objects.create(
+            studio=self.studio,
+            title="Amazing Grace",
+            state=state,
+            content_hash=self.HASH,
+            **extra,
+        )
+
+    def test_rejects_file_already_in_library(self):
+        existing = self.make_track(Track.State.READY)
+
+        data = self.request()
+
+        self.assertIsNone(data["uploadId"])
+        self.assertEqual(data["duplicateOf"]["id"], str(existing.id))
+        self.assertFalse(UploadSession.objects.exists())
+
+    def test_replaces_failed_attempt(self):
+        failed = self.make_track(Track.State.FAILED)
+
+        data = self.request()
+
+        self.assertIsNotNone(data["uploadId"])
+        self.assertIsNone(data["duplicateOf"])
+        self.assertFalse(Track.objects.filter(id=failed.id).exists())
+
+    def test_replaces_abandoned_upload(self):
+        upload, track, part = self.make_upload()
+        Track.objects.filter(id=track.id).update(content_hash=self.HASH)
+
+        data = self.request()
+
+        self.assertIsNotNone(data["uploadId"])
+        self.assertFalse(part.exists())
+        self.assertFalse(UploadSession.objects.filter(id=upload.id).exists())
+
+    def test_deleted_track_does_not_block_reupload(self):
+        self.make_track(Track.State.READY).delete()
+
+        data = self.request()
+
+        self.assertIsNotNone(data["uploadId"])
+
+
+class MetadataDuplicateTests(UploadCleanupTestBase):
+    def make_track(self, title, artist, duration, state=Track.State.READY):
+        return Track.objects.create(
+            studio=self.studio,
+            title=title,
+            artist=artist,
+            duration_seconds=duration,
+            state=state,
+            content_hash=f"{title}{artist}{duration}{state}",
+        )
+
+    def test_matches_same_title_artist_and_close_length(self):
+        original = self.make_track("Amazing Grace", "Choir", 241.0)
+        new = self.make_track("amazing grace", "CHOIR", None, Track.State.PENDING)
+
+        self.assertEqual(find_metadata_duplicate(new, 242.5), original)
+
+    def test_ignores_different_length_failed_tracks_and_missing_tags(self):
+        self.make_track("Amazing Grace", "Choir", 300.0)
+        self.make_track("Amazing Grace", "Choir", 241.0, Track.State.FAILED)
+        new = self.make_track("Amazing Grace", "Choir", None, Track.State.PENDING)
+        untagged = self.make_track("Amazing Grace", "", None, Track.State.PENDING)
+
+        self.assertIsNone(find_metadata_duplicate(new, 241.0))
+        self.assertIsNone(find_metadata_duplicate(untagged, 300.0))

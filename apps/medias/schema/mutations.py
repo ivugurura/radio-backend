@@ -2,12 +2,14 @@ import hashlib
 import logging
 
 import graphene
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from graphql_jwt.decorators import login_required
 
 from apps.common.translations import translate
 from apps.medias.models import Track, UploadSession
+from apps.medias.schema.types import TrackType
 from apps.medias.services.delete import delete_track_files
+from apps.medias.services.duplicates import find_exact_duplicate
 from apps.medias.services.upload import (
     cancel_upload,
     ensure_upload_token,
@@ -18,6 +20,19 @@ from apps.medias.tasks import start_pipeline_for_upload
 from apps.studio.models import Studio
 
 logger = logging.getLogger(__name__)
+
+# A track holding the same hash in these states is a dead attempt (failed, or an
+# upload abandoned by a refresh), so a new upload of that file replaces it.
+REPLACEABLE_STATES = (Track.State.FAILED, Track.State.UPLOADING)
+
+
+def _release_hash(track: Track) -> None:
+    up = track.upload_session
+    if track.state == Track.State.UPLOADING and up and not up.finalized:
+        cancel_upload(up)
+        return
+    delete_track_files(track)
+    track.delete()
 
 
 class RequestUpload(graphene.Mutation):
@@ -32,6 +47,8 @@ class RequestUpload(graphene.Mutation):
     chunk_url = graphene.String()
     upload_token = graphene.String()
     track_id = graphene.UUID()
+    # Set instead of the session fields when this exact file is already in the library.
+    duplicate_of = graphene.Field(TrackType)
 
     @staticmethod
     @transaction.atomic
@@ -42,20 +59,36 @@ class RequestUpload(graphene.Mutation):
         user = info.context.user
         studio = Studio.objects.get(slug=studio_slug, is_active=True)
 
+        if checksum_sha256:
+            existing = find_exact_duplicate(studio, checksum_sha256)
+            if existing and existing.state not in REPLACEABLE_STATES:
+                return RequestUpload(duplicate_of=existing)
+            if existing:
+                _release_hash(existing)
+
         up = UploadSession.objects.create(
             studio=studio,
             original_filename=file_name,
             size_bytes=size_bytes,
             mime_type=mime_type,
         )
-        track = Track.objects.create(
-            studio=studio,
-            title=file_name,
-            state=Track.State.UPLOADING,
-            content_hash=checksum_sha256
-            or hashlib.sha256(f"{up.id}:{file_name}".encode()).hexdigest(),
-            upload_session=up,
-        )
+        try:
+            # Savepoint: a concurrent upload of the same file trips the unique
+            # (studio, content_hash) constraint; report it as a duplicate.
+            with transaction.atomic():
+                track = Track.objects.create(
+                    studio=studio,
+                    title=file_name,
+                    state=Track.State.UPLOADING,
+                    content_hash=checksum_sha256
+                    or hashlib.sha256(f"{up.id}:{file_name}".encode()).hexdigest(),
+                    upload_session=up,
+                )
+        except IntegrityError:
+            up.hard_delete()
+            return RequestUpload(
+                duplicate_of=find_exact_duplicate(studio, checksum_sha256)
+            )
         init_upload(studio, up)
         token = ensure_upload_token(up)
         chunk_url = f"/api/uploads/{up.id}/chunk"

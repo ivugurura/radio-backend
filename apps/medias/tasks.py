@@ -26,6 +26,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.medias.models import Track
+from apps.medias.services.duplicates import find_metadata_duplicate
 from apps.medias.services.paths import relpath_from_root, studio_paths
 
 logger = logging.getLogger(__name__)
@@ -198,7 +199,9 @@ def start_pipeline_for_upload(self, track_id: str):
         new_year = coerce_year_from_tags(probed_tags)
 
         dirty_fields = ["updated_at"]
-        if new_title and not track.title:
+        # requestUpload seeds the title with the file name as a placeholder; a
+        # real title tag should still replace it.
+        if new_title and (not track.title or track.title == up.original_filename):
             track.title = new_title
             dirty_fields.append("title")
         if new_artist and not track.artist:
@@ -213,6 +216,11 @@ def start_pipeline_for_upload(self, track_id: str):
         if new_year and not track.year:
             track.year = new_year
             dirty_fields.append("year")
+        original = find_metadata_duplicate(track, duration)
+        if original:
+            logger.info("Track %s looks like a duplicate of %s", track.id, original.id)
+            track.is_duplicate_of = original
+            dirty_fields.append("is_duplicate_of")
         if dirty_fields:
             track.save(update_fields=dirty_fields)
 

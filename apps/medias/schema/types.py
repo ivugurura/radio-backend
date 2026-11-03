@@ -20,7 +20,13 @@ class TrackType(DjangoObjectType):
             "processed_rel_path",
             "created_at",
             "updated_at",
+            "is_duplicate_of",
         )
+
+    def resolve_is_duplicate_of(self, info):
+        # The FK descriptor ignores soft delete; hide originals that were removed.
+        original = self.is_duplicate_of
+        return original if original and original.deleted_at is None else None
 
 
 class UploadSessionType(DjangoObjectType):

@@ -16,7 +16,11 @@ class MediasQuery(graphene.ObjectType):
 
     def resolve_tracks(self, info, studio_slug, state=None, search=None, **kwargs):
         studio = get_studio(studio_slug)
-        qs = Track.objects.filter(studio=studio).order_by("-created_at")
+        qs = (
+            Track.objects.filter(studio=studio)
+            .select_related("is_duplicate_of")
+            .order_by("-created_at")
+        )
         if state:
             qs = qs.filter(state=state)
         if search:

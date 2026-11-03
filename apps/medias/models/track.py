@@ -60,7 +60,14 @@ class Track(BaseModel):
 
     class Meta:
         db_table = "tracks"
-        unique_together = ("studio", "content_hash")
+        constraints = [
+            # Soft-deleted tracks must not block re-uploading the same file.
+            models.UniqueConstraint(
+                fields=["studio", "content_hash"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="uniq_live_track_content_hash",
+            ),
+        ]
         indexes = [
             models.Index(fields=["studio", "state"]),
             models.Index(fields=["studio", "is_active", "state"]),
