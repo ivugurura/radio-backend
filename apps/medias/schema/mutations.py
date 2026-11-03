@@ -9,6 +9,7 @@ from apps.common.translations import translate
 from apps.medias.models import Track, UploadSession
 from apps.medias.services.delete import delete_track_files
 from apps.medias.services.upload import (
+    cancel_upload,
     ensure_upload_token,
     finalize_upload,
     init_upload,
@@ -95,6 +96,29 @@ class FinalizeUpload(graphene.Mutation):
         return FinalizeUpload(ok=True, track_id=track.id)
 
 
+class CancelUpload(graphene.Mutation):
+    """Discard an unfinished upload so it doesn't linger as an UPLOADING track."""
+
+    class Arguments:
+        upload_id = graphene.UUID(required=True)
+
+    ok = graphene.Boolean()
+
+    @staticmethod
+    @transaction.atomic
+    @login_required
+    def mutate(self, info, upload_id):
+        upload = (
+            UploadSession.objects.select_for_update()
+            .filter(id=upload_id, finalized=False)
+            .first()
+        )
+        # Idempotent: already canceled, expired or finalized is fine.
+        if upload:
+            cancel_upload(upload)
+        return CancelUpload(ok=True)
+
+
 class DeleteTrack(graphene.Mutation):
     class Arguments:
         track_id = graphene.UUID(required=True)
@@ -138,4 +162,5 @@ class DeleteTrack(graphene.Mutation):
 class MediasMutations(graphene.ObjectType):
     request_upload = RequestUpload.Field()
     finalize_upload = FinalizeUpload.Field()
+    cancel_upload = CancelUpload.Field()
     delete_track = DeleteTrack.Field()

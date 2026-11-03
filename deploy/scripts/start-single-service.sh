@@ -52,7 +52,9 @@ trap cleanup EXIT INT TERM
 
 gunicorn_pid=$!
 
-"$VENV_DIR/bin/celery" -A config.celery worker -l info --concurrency "$CELERY_CONCURRENCY" &
+# -B embeds Celery Beat (periodic tasks, e.g. stale-upload cleanup). Safe only
+# because this is the single worker; run a separate `celery beat` if you scale out.
+"$VENV_DIR/bin/celery" -A config.celery worker -B -l info --concurrency "$CELERY_CONCURRENCY" &
 celery_pid=$!
 
 wait -n "$gunicorn_pid" "$celery_pid"

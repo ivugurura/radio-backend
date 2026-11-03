@@ -17,6 +17,7 @@ import logging
 import os
 import shutil
 import subprocess
+from datetime import timedelta
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -291,3 +292,22 @@ def start_pipeline_for_upload(self, track_id: str):
         except self.MaxRetriesExceededError:
             logger.error("Max retries exceeded for track %s", track_id)
         return
+
+
+@shared_task
+def cleanup_stale_uploads():
+    """Periodic (Celery Beat): fail abandoned uploads and drop orphan .part files."""
+    from apps.medias.services.upload import (
+        expire_stale_uploads,
+        sweep_orphan_part_files,
+    )
+
+    older_than = timedelta(hours=settings.UPLOAD_STALE_AFTER_HOURS)
+    expired = expire_stale_uploads(older_than)
+    swept = sweep_orphan_part_files(older_than)
+    if expired or swept:
+        logger.info(
+            "Upload cleanup: expired %s session(s), removed %s orphan file(s)",
+            expired,
+            swept,
+        )

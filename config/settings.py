@@ -17,8 +17,7 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-RADIO_ROOT = Path(
-    os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
+RADIO_ROOT = Path(os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
 RADIO_STUDIOS_ROOT = RADIO_ROOT / "studios"
 
 # Target bitrate for normalized MP3 when publishing
@@ -229,6 +228,16 @@ PASSWORD_HASHERS = [
 # Celery (example)
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "")
+CELERY_BEAT_SCHEDULE = {
+    "cleanup-stale-uploads": {
+        "task": "apps.medias.tasks.cleanup_stale_uploads",
+        "schedule": 60 * 60,  # hourly
+    },
+}
+
+# Unfinished uploads with no new chunk for this long are marked FAILED and their
+# partial files removed (see apps.medias.tasks.cleanup_stale_uploads).
+UPLOAD_STALE_AFTER_HOURS = int(os.getenv("UPLOAD_STALE_AFTER_HOURS", "6"))
 
 STUDIO_TOKEN = os.getenv("STUDIO_TOKEN", "")
 
