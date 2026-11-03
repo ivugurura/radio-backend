@@ -20,6 +20,34 @@ from apps.studio.schema.types import (
 )
 from apps.studio.services.helpers import get_studio
 
+# Rough capacity budget for the VPS (2 vCPU, 8 GB RAM, 100 GB disk, 8 TB/month).
+# Disk is in GiB: a "100 GB" disk formats to ~93 GiB usable.
+VPS_DISK_GB = 93
+DISK_RESERVED_GB = {
+    "system": 15,  # OS, packages, 4 GB swap, logs/journal
+    "databases": 8,  # Postgres, Redis, local backups
+    "web_apps": 10,  # prod + staging web app, FastAPI service
+    "headroom": 10,  # ext4 reserved blocks, ffmpeg scratch, safety margin
+}
+STUDIOS_DISK_GB = VPS_DISK_GB - sum(DISK_RESERVED_GB.values())  # ~50 GiB
+
+VPS_BANDWIDTH_BYTES = 8 * 10**12  # 8 TB per month
+BANDWIDTH_RESERVED_BYTES = 1 * 10**12  # web apps, uploads, backups
+STREAMING_BANDWIDTH_BYTES = VPS_BANDWIDTH_BYTES - BANDWIDTH_RESERVED_BYTES
+
+
+def _studio_quotas(studio: Studio) -> tuple[int, float]:
+    """Split the studio budget evenly across active studios.
+
+    Returns (listening_seconds_quota, disk_quota_gb) for the 30-day window.
+    """
+    studio_count = max(1, Studio.objects.filter(is_active=True).count())
+    bytes_per_second = (studio.default_br_kbps or 128) * 1000 / 8
+    listening_quota = int(
+        STREAMING_BANDWIDTH_BYTES / bytes_per_second / studio_count)
+    disk_quota_gb = round(STUDIOS_DISK_GB / studio_count, 1)
+    return listening_quota, disk_quota_gb
+
 
 class DashboardQuery(graphene.ObjectType):
     listening_trend = graphene.Field(
@@ -190,10 +218,12 @@ class DashboardQuery(graphene.ObjectType):
         )
         disk_used_gb = float(upload_bytes) / (1024**3)
 
+        # Env vars override the VPS-based estimate.
+        default_listening_quota, default_disk_quota_gb = _studio_quotas(studio)
         listening_quota = int(
-            os.getenv("LISTENING_SECONDS_QUOTA", "5400000")  # e.g., 1500 hours
+            os.getenv("LISTENING_SECONDS_QUOTA") or default_listening_quota
         )
-        disk_quota_gb = float(os.getenv("DISK_QUOTA_GB", "10"))
+        disk_quota_gb = float(os.getenv("DISK_QUOTA_GB") or default_disk_quota_gb)
 
         return StudioCapacity(
             listeningSeconds=listening_seconds,
