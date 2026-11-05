@@ -39,6 +39,13 @@ class ListeningSummary(graphene.ObjectType):
     last30DaysChangePct = graphene.Float(required=True)
     prev30Days = graphene.Int(required=True)
     lastMonth = graphene.Int(required=True)
+    # Distinct listeners behind the listens above (a listener who tunes in
+    # three times today is 3 listens, 1 unique listener).
+    uniqueToday = graphene.Int(required=True)
+    uniqueYesterday = graphene.Int(required=True)
+    uniqueLast7Days = graphene.Int(required=True)
+    uniqueLast30Days = graphene.Int(required=True)
+    uniqueLastMonth = graphene.Int(required=True)
 
 
 class StudioCapacity(graphene.ObjectType):

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from config.model import BaseModel
 
@@ -32,10 +33,17 @@ class ListenerSession(BaseModel):
         Studio, on_delete=models.CASCADE, related_name="listener_sessions"
     )
 
-    started_at = models.DateTimeField(auto_now_add=True)
+    # Sent by radio-studio (when the listener connected); ingest falls back to
+    # the receive time for older studio builds that do not send it.
+    started_at = models.DateTimeField(default=timezone.now)
     ended_at = models.DateTimeField(null=True, blank=True, db_index=True)
     # Updated on every ingest/heartbeat to reflect the latest activity
     last_seen = models.DateTimeField(auto_now=True, db_index=True)
+
+    # Salted hash identifying the listener across sessions (browser id, or IP +
+    # User-Agent for players without one), for unique-listener counts. Empty on
+    # rows from before it existed; queries then fall back to the session id.
+    listener_key = models.CharField(max_length=64, blank=True)
 
     ip_hash = models.CharField(max_length=64, blank=True)
     user_agent = models.CharField(max_length=255, blank=True)
