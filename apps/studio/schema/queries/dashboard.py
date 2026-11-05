@@ -3,7 +3,17 @@ import math
 import os
 
 import graphene
-from django.db.models import Q, Sum
+from django.db.models import (
+    CharField,
+    Count,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    Q,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
 from apps.medias.models import Track, UploadSession
@@ -34,6 +44,36 @@ STUDIOS_DISK_GB = VPS_DISK_GB - sum(DISK_RESERVED_GB.values())  # ~50 GiB
 VPS_BANDWIDTH_BYTES = 8 * 10**12  # 8 TB per month
 BANDWIDTH_RESERVED_BYTES = 1 * 10**12  # web apps, uploads, backups
 STREAMING_BANDWIDTH_BYTES = VPS_BANDWIDTH_BYTES - BANDWIDTH_RESERVED_BYTES
+
+
+# A session counts as a "listen" once it has lasted this long, the usual
+# radio-measurement threshold. It filters out tune-ins that leave right away
+# and connections that drop immediately.
+MIN_LISTEN_DURATION = datetime.timedelta(seconds=30)
+
+# Identifies the listener behind a session for unique-listener counts. Rows
+# from before listener_key existed (or from older studio builds) fall back to
+# their own id, i.e. each counts as a separate listener.
+_LISTENER_IDENTITY = Coalesce(
+    NullIf("listener_key", Value("")), Cast("id", output_field=CharField())
+)
+
+
+def _qualifying_listens(studio: Studio):
+    """Sessions of ``studio`` that lasted at least MIN_LISTEN_DURATION.
+
+    A session still open has no ended_at; its last_seen (refreshed by every
+    studio flush) stands in for the end so far.
+    """
+    duration = ExpressionWrapper(
+        Coalesce("ended_at", "last_seen") - F("started_at"),
+        output_field=DurationField(),
+    )
+    return (
+        ListenerSession.objects.filter(studio=studio)
+        .annotate(duration=duration)
+        .filter(duration__gte=MIN_LISTEN_DURATION)
+    )
 
 
 def _studio_quotas(studio: Studio) -> tuple[int, float]:
@@ -144,6 +184,11 @@ class DashboardQuery(graphene.ObjectType):
                 last30DaysChangePct=0.0,
                 prev30Days=0,
                 lastMonth=0,
+                uniqueToday=0,
+                uniqueYesterday=0,
+                uniqueLast7Days=0,
+                uniqueLast30Days=0,
+                uniqueLastMonth=0,
             )
 
         now = timezone.now()
@@ -154,38 +199,56 @@ class DashboardQuery(graphene.ObjectType):
         thirty_days_start = today_start - datetime.timedelta(days=30)
         prev_thirty_days_start = today_start - datetime.timedelta(days=60)
         month_start = today_start.replace(day=1)
-        last_month_end = month_start - datetime.timedelta(days=1)
-        last_month_start = last_month_end.replace(day=1)
+        last_month_start = (month_start - datetime.timedelta(days=1)).replace(day=1)
 
-        # Count "listens" as session starts (ListenerSession.started_at inside window)
-        qs = ListenerSession.objects.filter(studio=studio)
+        windows = {
+            "today": Q(started_at__gte=today_start),
+            "yesterday": Q(started_at__gte=yesterday_start, started_at__lt=today_start),
+            "last7": Q(started_at__gte=seven_days_start),
+            "last30": Q(started_at__gte=thirty_days_start),
+            "prev30": Q(
+                started_at__gte=prev_thirty_days_start,
+                started_at__lt=thirty_days_start,
+            ),
+            "last_month": Q(
+                started_at__gte=last_month_start, started_at__lt=month_start
+            ),
+        }
+        counts = (
+            _qualifying_listens(studio)
+            .filter(started_at__gte=min(prev_thirty_days_start, last_month_start))
+            .aggregate(
+                **{
+                    f"{name}_listens": Count("id", filter=q)
+                    for name, q in windows.items()
+                },
+                **{
+                    f"{name}_unique": Count(_LISTENER_IDENTITY, distinct=True, filter=q)
+                    for name, q in windows.items()
+                },
+            )
+        )
 
-        today_cnt = qs.filter(started_at__gte=today_start).count()
-        yesterday_cnt = qs.filter(
-            started_at__gte=yesterday_start, started_at__lt=today_start
-        ).count()
-        last7_cnt = qs.filter(started_at__gte=seven_days_start).count()
-        last30_cnt = qs.filter(started_at__gte=thirty_days_start).count()
-        prev30_cnt = qs.filter(
-            started_at__gte=prev_thirty_days_start, started_at__lt=thirty_days_start
-        ).count()
-        last_month_cnt = qs.filter(
-            started_at__gte=last_month_start, started_at__lte=last_month_end
-        ).count()
-
+        last30_cnt = counts["last30_listens"]
+        prev30_cnt = counts["prev30_listens"]
         if prev30_cnt > 0:
             change_pct = ((last30_cnt - prev30_cnt) / prev30_cnt) * 100.0
         else:
             change_pct = 0.0
 
         return ListeningSummary(
-            today=today_cnt,
-            yesterday=yesterday_cnt,
-            last7Days=last7_cnt,
+            today=counts["today_listens"],
+            yesterday=counts["yesterday_listens"],
+            last7Days=counts["last7_listens"],
             last30Days=last30_cnt,
             last30DaysChangePct=change_pct,
             prev30Days=prev30_cnt,
-            lastMonth=last_month_cnt,
+            lastMonth=counts["last_month_listens"],
+            uniqueToday=counts["today_unique"],
+            uniqueYesterday=counts["yesterday_unique"],
+            uniqueLast7Days=counts["last7_unique"],
+            uniqueLast30Days=counts["last30_unique"],
+            uniqueLastMonth=counts["last_month_unique"],
         )
 
     # -------- Capacity --------

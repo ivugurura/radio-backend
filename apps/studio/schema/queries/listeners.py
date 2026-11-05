@@ -40,9 +40,16 @@ class ListenerQuery(graphene.ObjectType):
         else:
             since = now - datetime.timedelta(days=1)
 
-        active_now = ListenerSession.objects.filter(
-            studio=studio, last_seen__gte=now - GRACE_PERIOD
-        ).count()
+        # Open sessions the studio reported recently. radio-studio already merges
+        # a listener's reconnects and parallel tabs into one session, so this
+        # counts listeners. ended_at drops a closed session at once; last_seen
+        # covers the studio going away without reporting ends.
+        open_sessions = ListenerSession.objects.filter(
+            studio=studio,
+            ended_at__isnull=True,
+            last_seen__gte=now - GRACE_PERIOD,
+        )
+        active_now = open_sessions.count()
 
         minute_buckets = ListenerStatBucket.objects.filter(
             studio=studio, interval="MINUTE", bucket_start__gte=since
@@ -77,10 +84,7 @@ class ListenerQuery(graphene.ObjectType):
                 except Exception:
                     continue
         else:
-            qs = ListenerSession.objects.filter(
-                studio=studio, ended_at__isnull=True
-            ).values_list("country", flat=True)
-            for c in qs:
+            for c in open_sessions.values_list("country", flat=True):
                 if not c:
                     continue
                 countries_map[c] = countries_map.get(c, 0) + 1

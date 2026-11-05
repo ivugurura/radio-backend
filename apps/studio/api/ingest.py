@@ -143,6 +143,11 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     ListenerSession(
                         pk=s_id_uuid,
                         studio=studio,
+                        # Older studio builds send no started_at; the receive
+                        # time is the best guess. Only used on insert: the
+                        # upsert below never rewrites it.
+                        started_at=_parse_iso(s.get("started_at")) or timezone.now(),
+                        listener_key=(s.get("listener_key") or "")[:64],
                         ip_hash=s.get("ip_hash", ""),
                         user_agent=s.get("user_agent", ""),
                         client_type=s.get("client_type", ""),
@@ -170,6 +175,7 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
                     update_conflicts=True,
                     unique_fields=["id"],
                     update_fields=[
+                        "listener_key",
                         "ip_hash",
                         "user_agent",
                         "client_type",
