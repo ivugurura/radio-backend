@@ -194,10 +194,13 @@ def ingest_listener_events(request: HttpRequest, studio_slug: str) -> JsonRespon
             # every connected listener on each flush. listenerOverview.activeNow
             # relies on last_seen staying fresh for all of them.
             touched = 0
+            # A connected session is open by definition: clearing ended_at
+            # reopens one the studio resumed after a reconnect, even when its
+            # full details are not part of this batch.
             if connected_ids:
                 touched = ListenerSession.objects.filter(
                     studio=studio, pk__in=connected_ids
-                ).update(last_seen=timezone.now())
+                ).update(last_seen=timezone.now(), ended_at=None)
 
             # Upsert ListenerStatBucket by unique (studio, interval, bucket_start)
             for b in buckets:
