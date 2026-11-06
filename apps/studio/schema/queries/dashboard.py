@@ -3,6 +3,7 @@ import math
 import os
 
 import graphene
+from django.core.cache import cache
 from django.db.models import (
     CharField,
     Count,
@@ -44,6 +45,38 @@ STUDIOS_DISK_GB = VPS_DISK_GB - sum(DISK_RESERVED_GB.values())  # ~50 GiB
 VPS_BANDWIDTH_BYTES = 8 * 10**12  # 8 TB per month
 BANDWIDTH_RESERVED_BYTES = 1 * 10**12  # web apps, uploads, backups
 STREAMING_BANDWIDTH_BYTES = VPS_BANDWIDTH_BYTES - BANDWIDTH_RESERVED_BYTES
+
+# Capacity moves slowly (disk use, 30-day listening), so it is cached per studio.
+CAPACITY_CACHE_SECONDS = 60
+
+
+def _compute_capacity(studio: Studio) -> dict:
+    thirty_days_ago = timezone.now() - datetime.timedelta(days=30)
+    minutes_sum = (
+        ListenerStatBucket.objects.filter(
+            studio=studio, interval="MINUTE", bucket_start__gte=thirty_days_ago
+        ).aggregate(total=Sum("listener_minutes"))["total"]
+        or 0
+    )
+
+    # Disk usage: the recorded on-disk size of each track's assets.
+    disk_bytes = (
+        TrackAsset.objects.filter(track__studio=studio).aggregate(
+            total=Sum("size_bytes")
+        )["total"]
+        or 0
+    )
+
+    # Env vars override the VPS-based estimate.
+    default_listening_quota, default_disk_quota_gb = _studio_quotas(studio)
+    return {
+        "listeningSeconds": int(minutes_sum * 60),
+        "listeningSecondsQuota": int(
+            os.getenv("LISTENING_SECONDS_QUOTA") or default_listening_quota
+        ),
+        "diskUsedGb": round(float(disk_bytes) / (1024**3), 4),
+        "diskQuotaGb": float(os.getenv("DISK_QUOTA_GB") or default_disk_quota_gb),
+    }
 
 
 # A session counts as a "listen" once it has lasted this long, the usual
@@ -262,38 +295,12 @@ class DashboardQuery(graphene.ObjectType):
                 diskQuotaGb=0.0,
             )
 
-        now = timezone.now()
-        thirty_days_ago = now - datetime.timedelta(days=30)
-        minutes_sum = (
-            ListenerStatBucket.objects.filter(
-                studio=studio, interval="MINUTE", bucket_start__gte=thirty_days_ago
-            ).aggregate(total=Sum("listener_minutes"))["total"]
-            or 0
+        values = cache.get_or_set(
+            f"studio-capacity:{studio.id}",
+            lambda: _compute_capacity(studio),
+            CAPACITY_CACHE_SECONDS,
         )
-        listening_seconds = int(minutes_sum * 60)
-
-        # Disk usage: the recorded on-disk size of each live track's assets.
-        upload_bytes = (
-            TrackAsset.objects.filter(
-                track__studio=studio, track__deleted_at__isnull=True
-            ).aggregate(total=Sum("size_bytes"))["total"]
-            or 0
-        )
-        disk_used_gb = float(upload_bytes) / (1024**3)
-
-        # Env vars override the VPS-based estimate.
-        default_listening_quota, default_disk_quota_gb = _studio_quotas(studio)
-        listening_quota = int(
-            os.getenv("LISTENING_SECONDS_QUOTA") or default_listening_quota
-        )
-        disk_quota_gb = float(os.getenv("DISK_QUOTA_GB") or default_disk_quota_gb)
-
-        return StudioCapacity(
-            listeningSeconds=listening_seconds,
-            listeningSecondsQuota=listening_quota,
-            diskUsedGb=round(disk_used_gb, 4),
-            diskQuotaGb=disk_quota_gb,
-        )
+        return StudioCapacity(**values)
 
     # -------- Current Queue --------
     def resolve_current_queue(self, info, studio_id: str, limit: int):
