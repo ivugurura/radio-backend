@@ -26,6 +26,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.medias.models import Track
+from apps.medias.services.assets import record_mp3_asset
 from apps.medias.services.duplicates import find_metadata_duplicate
 from apps.medias.services.paths import relpath_from_root, studio_paths
 
@@ -283,6 +284,7 @@ def start_pipeline_for_upload(self, track_id: str):
                 "updated_at",
             ]
         )
+        record_mp3_asset(track)
 
         try:
             work_in.unlink(missing_ok=True)

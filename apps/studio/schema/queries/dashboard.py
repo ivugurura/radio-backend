@@ -16,7 +16,7 @@ from django.db.models import (
 from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
-from apps.medias.models import Track, UploadSession
+from apps.medias.models import Track, TrackAsset
 from apps.studio.models.analytics import ListenerSession, ListenerStatBucket, PlayEvent
 from apps.studio.models.base import Studio
 from apps.studio.schema.types import (
@@ -272,11 +272,11 @@ class DashboardQuery(graphene.ObjectType):
         )
         listening_seconds = int(minutes_sum * 60)
 
-        # Disk usage: approximate by summing size_bytes of finalized UploadSession
+        # Disk usage: the recorded on-disk size of each live track's assets.
         upload_bytes = (
-            UploadSession.objects.filter(studio=studio, finalized=True).aggregate(
-                total=Sum("size_bytes")
-            )["total"]
+            TrackAsset.objects.filter(
+                track__studio=studio, track__deleted_at__isnull=True
+            ).aggregate(total=Sum("size_bytes"))["total"]
             or 0
         )
         disk_used_gb = float(upload_bytes) / (1024**3)
