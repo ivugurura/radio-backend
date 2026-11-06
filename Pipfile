@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [scripts]
+manage = "python manage.py"
 start = "python manage.py runserver"
 migrate = "python manage.py migrate"
 start-celery = "celery -A config worker -l info"
