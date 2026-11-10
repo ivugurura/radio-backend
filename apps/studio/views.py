@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 from apps.medias.models.track import Track
+from apps.studio.services.helpers import get_studio
 
 # If you use token auth, replace with your own decorator/middleware
 
@@ -12,9 +13,13 @@ def studio_playlist(request, studio_slug):
     limit = int(request.GET.get("limit", 50))
     # TODO: authN/authZ for studio_id, e.g., check API key/JWT scope
 
-    qs = Track.objects.filter(
-        studio__slug=studio_slug, processed_rel_path__isnull=False
-    ).order_by("created_at")[:limit]
+    studio = get_studio(studio_slug)
+    if studio is None:
+        return JsonResponse([], safe=False)
+
+    qs = Track.objects.filter(studio=studio, processed_rel_path__isnull=False).order_by(
+        "created_at"
+    )[:limit]
 
     data = [
         {

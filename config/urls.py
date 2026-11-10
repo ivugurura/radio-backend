@@ -23,6 +23,7 @@ from apps.medias.views import serve_track, upload_chunk_view
 from apps.studio.api.ingest import ingest_listener_events
 from apps.studio.api.play_ingest import ingest_play_events
 from apps.studio.api.streaming_config import streaming_config
+from apps.studio.api.studios import list_studios
 from apps.studio.views import studio_playlist
 from apps.users.views import AuthAwareGraphQLView, logout_view, refresh_token_view
 
@@ -34,6 +35,7 @@ urlpatterns = [
     path("api/auth/logout", logout_view, name="logout"),
     # API endpoints
     path("api/uploads/<uuid:upload_id>/chunk", upload_chunk_view, name="upload-chunk"),
+    path("api/studios", list_studios, name="studio-list"),
     path(
         "api/studios/<str:studio_slug>/playlist",
         studio_playlist,

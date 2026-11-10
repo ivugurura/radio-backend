@@ -1,30 +1,41 @@
 import secrets
+import uuid
+
+from django.conf import settings
+from django.http import HttpRequest
 
 from apps.studio.models.base import Studio, StudioMembership
 from apps.studio.models.streaming import StreamingCredential
 
+# Slugs used before studios were renamed to language codes (migration 0009).
+# Kept so old player links and encoders still resolve; remove once nothing
+# requests them.
+LEGACY_STUDIO_SLUGS = {
+    "reformation-rw": "rw",
+}
+
 
 def get_studio(studio_id: str) -> Studio | None:
-    """Return a Studio matched by slug, pk, or code; None if not found.
-
-    Lookup order:
-    1. slug field
-    2. primary key (pk)
-    3. code field
-    All exceptions are swallowed; only Studio.DoesNotExist/ValueError expected.
-    """
-    studio = Studio.objects.filter(slug=studio_id).first()
+    """Return a Studio matched by slug, legacy slug, or pk; None if not found."""
+    slug = LEGACY_STUDIO_SLUGS.get(studio_id, studio_id)
+    studio = Studio.objects.filter(slug=slug).first()
     if studio:
         return studio
 
     try:
-        studio = Studio.objects.get(pk=studio_id)
-        return studio
-    except (Studio.DoesNotExist, ValueError):
-        pass
+        pk = uuid.UUID(str(studio_id))
+    except ValueError:
+        return None
+    return Studio.objects.filter(pk=pk).first()
 
-    studio = Studio.objects.filter(code=studio_id).first()
-    return studio
+
+def is_studio_server_request(request: HttpRequest) -> bool:
+    """True when the request carries radio-studio's `Bearer <STUDIO_TOKEN>`."""
+    header = request.META.get("HTTP_AUTHORIZATION", "")
+    expected = getattr(settings, "STUDIO_TOKEN", "")
+    if not expected or not header.startswith("Bearer "):
+        return False
+    return secrets.compare_digest(header[len("Bearer ") :], expected)
 
 
 def can_manage_studio_settings(user, studio: Studio) -> bool:

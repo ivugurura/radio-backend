@@ -20,6 +20,7 @@ from apps.common.translations import translate
 from apps.medias.models import UploadSession
 from apps.medias.models.track import Track
 from apps.medias.services.upload import append_chunk
+from apps.studio.services.helpers import get_studio
 
 CONTENT_RANGE_RE = re.compile(r"bytes (\d+)-(\d+)/(\d+)")
 
@@ -66,17 +67,18 @@ def _iter_file_range(path: Path, start: int, length: int):
 @require_GET
 def serve_track(request, studio_slug, track_id):
     """Serve a processed MP3, honouring HTTP Range so browsers can seek."""
+    studio = get_studio(studio_slug)
+    if studio is None:
+        raise Http404(translate("medias.track_not_found"))
     track = (
-        Track.objects.filter(
-            id=track_id, studio__slug=studio_slug, state=Track.State.READY
-        )
+        Track.objects.filter(id=track_id, studio=studio, state=Track.State.READY)
         .exclude(processed_rel_path="")
         .first()
     )
     if track is None:
         raise Http404(translate("medias.track_not_found"))
 
-    studio_root = (Path(settings.RADIO_STUDIOS_ROOT) / studio_slug).resolve()
+    studio_root = (Path(settings.RADIO_STUDIOS_ROOT) / studio.slug).resolve()
     file_path = (studio_root / track.processed_rel_path).resolve()
     if not file_path.is_relative_to(studio_root) or not file_path.is_file():
         raise Http404(translate("medias.track_not_found"))
