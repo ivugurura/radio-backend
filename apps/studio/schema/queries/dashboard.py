@@ -179,7 +179,8 @@ class DashboardQuery(graphene.ObjectType):
                 if idx % 3 != 0:
                     continue
             active = b.active_peak or 0
-            points.append(ListeningTrendPoint(ts=b.bucket_start, active=active))
+            points.append(ListeningTrendPoint(
+                ts=b.bucket_start, active=active))
 
         # The peak is always today's (UTC day, as in the summary), whatever the
         # charted range. Ties keep the earliest minute to reach that peak.
@@ -213,7 +214,8 @@ class DashboardQuery(graphene.ObjectType):
         thirty_days_start = today_start - datetime.timedelta(days=30)
         prev_thirty_days_start = today_start - datetime.timedelta(days=60)
         month_start = today_start.replace(day=1)
-        last_month_start = (month_start - datetime.timedelta(days=1)).replace(day=1)
+        last_month_start = (
+            month_start - datetime.timedelta(days=1)).replace(day=1)
 
         windows = {
             "today": Q(started_at__gte=today_start),
