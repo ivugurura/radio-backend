@@ -126,25 +126,33 @@ def can_assign_role(actor, studio: Studio, role: str) -> bool:
     return ROLE_RANK[role] < ROLE_RANK[actor_role]
 
 
-def require_perm(perm: Perm, studio_arg: str = 'studio_id'):
+def check_perm(user, studio: Studio | None, perm: Perm | None = None) -> Studio:
+    """Raise unless ``user`` may act on ``studio`` (with ``perm``, if given).
+
+    A missing studio and a studio the user is not a member of give the same
+    "not found" error, so slugs and ids can't be probed; members lacking
+    ``perm`` get "forbidden". Returns the studio for chaining.
+    """
+    if studio is None or not has_studio_access(user, studio):
+        raise Exception(translate('studio.studio_not_found'))
+    if perm is not None and not has_perm(user, studio, perm):
+        raise Exception(translate('common.forbidden'))
+    return studio
+
+
+def require_perm(perm: Perm | None, studio_arg: str = 'studio_id'):
     """GraphQL resolver/mutate decorator: requires login, resolves the studio
-    from the ``studio_arg`` keyword argument and checks ``perm``.
+    from the ``studio_arg`` keyword argument and runs ``check_perm``.
+    ``perm=None`` admits any member of the studio.
 
     The resolver receives the Studio as ``studio`` in place of ``studio_arg``.
-    Unknown studios and studios the user is not a member of give the same
-    "not found" error, so slugs can't be probed; members lacking ``perm`` get
-    "forbidden".
     """
 
     def decorator(fn):
         @wraps(fn)
         def wrapper(root, info, *args, **kwargs):
-            user = info.context.user
             studio = get_studio(kwargs.pop(studio_arg, '') or '')
-            if studio is None or not has_studio_access(user, studio):
-                raise Exception(translate('studio.studio_not_found'))
-            if not has_perm(user, studio, perm):
-                raise Exception(translate('common.forbidden'))
+            check_perm(info.context.user, studio, perm)
             return fn(root, info, *args, studio=studio, **kwargs)
 
         return login_required(wrapper)

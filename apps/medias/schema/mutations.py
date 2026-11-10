@@ -17,7 +17,7 @@ from apps.medias.services.upload import (
     init_upload,
 )
 from apps.medias.tasks import start_pipeline_for_upload
-from apps.studio.models import Studio
+from apps.studio.services.permissions import Perm, check_perm, require_perm
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +51,12 @@ class RequestUpload(graphene.Mutation):
 
     @staticmethod
     @transaction.atomic
-    @login_required
+    @require_perm(Perm.MANAGE_MEDIA, studio_arg="studio_slug")
     def mutate(
-        self, info, studio_slug, file_name, size_bytes, mime_type, checksum_sha256=None
+        self, info, studio, file_name, size_bytes, mime_type, checksum_sha256=None
     ):
-        user = info.context.user
-        studio = Studio.objects.get(slug=studio_slug, is_active=True)
+        if not studio.is_active:
+            raise Exception(translate("studio.studio_not_found"))
 
         if checksum_sha256:
             existing = find_exact_duplicate(studio, checksum_sha256)
@@ -111,8 +111,13 @@ class FinalizeUpload(graphene.Mutation):
     @transaction.atomic
     @login_required
     def mutate(self, info, upload_id, checksum_sha256=None):
-        user = info.context.user
-        upload = UploadSession.objects.select_for_update().get(id=upload_id)
+        upload = (
+            UploadSession.objects.select_for_update()
+            .select_related("studio")
+            .filter(id=upload_id)
+            .first()
+        )
+        check_perm(info.context.user, upload and upload.studio, Perm.MANAGE_MEDIA)
         track = Track.objects.get(upload_session=upload)
 
         finalize_upload(upload)
@@ -142,11 +147,13 @@ class CancelUpload(graphene.Mutation):
     def mutate(self, info, upload_id):
         upload = (
             UploadSession.objects.select_for_update()
+            .select_related("studio")
             .filter(id=upload_id, finalized=False)
             .first()
         )
         # Idempotent: already canceled, expired or finalized is fine.
         if upload:
+            check_perm(info.context.user, upload.studio, Perm.MANAGE_MEDIA)
             cancel_upload(upload)
         return CancelUpload(ok=True)
 
@@ -161,10 +168,6 @@ class DeleteTrack(graphene.Mutation):
     @transaction.atomic
     @login_required
     def mutate(cls, root, info, track_id):
-        user = info.context.user
-        if not user or not user.is_authenticated:
-            raise Exception(translate("auth.auth_required"))
-
         try:
             track = Track.objects.select_related("studio", "upload_session").get(
                 id=track_id
@@ -173,8 +176,7 @@ class DeleteTrack(graphene.Mutation):
             # idempotent OK (already deleted)
             return DeleteTrack(ok=True)
 
-        # TODO: permission check (user can manage track in this studio)
-
+        check_perm(info.context.user, track.studio, Perm.MANAGE_MEDIA)
         hard_delete_track(track)
         return DeleteTrack(ok=True)
 

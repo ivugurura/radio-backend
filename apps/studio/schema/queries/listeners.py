@@ -7,7 +7,7 @@ from graphene import Argument
 from apps.studio.models.analytics import ListenerSession, ListenerStatBucket
 from apps.studio.models.base import Studio
 from apps.studio.schema.types import CountryCount, ListenerOverview, TimeRange
-from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, require_perm
 
 
 class ListenerQuery(graphene.ObjectType):
@@ -19,20 +19,10 @@ class ListenerQuery(graphene.ObjectType):
         ),
     )
 
+    @require_perm(Perm.VIEW_ANALYTICS)
     def resolve_listener_overview(
-        self, info, studio_id: str, range: str = "LAST_24_HOURS"
+        self, info, studio: Studio, range: str = "LAST_24_HOURS"
     ):
-        studio = get_studio(studio_id)
-        if not studio:
-            return ListenerOverview(
-                studio_id="",
-                active_now=0,
-                peak_last_hour=0,
-                peak_last_24h=0,
-                listener_minutes_last_24h=0,
-                countries=[],
-            )
-
         now = timezone.now()
         GRACE_PERIOD = datetime.timedelta(seconds=20)
         if range == TimeRange.LAST_7_DAYS.value:

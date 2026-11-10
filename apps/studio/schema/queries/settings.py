@@ -1,10 +1,8 @@
 import graphene
-from graphql_jwt.decorators import login_required
 
 from apps.studio.models.base import Studio
 from apps.studio.schema.types import StudioSettings
-from apps.studio.services.helpers import get_studio
-from apps.studio.services.permissions import Perm, has_perm
+from apps.studio.services.permissions import Perm, has_perm, require_perm
 
 
 def build_studio_settings(studio: Studio, user) -> StudioSettings:
@@ -26,9 +24,6 @@ class StudioSettingsQuery(graphene.ObjectType):
         StudioSettings, studio_id=graphene.String(required=True)
     )
 
-    @login_required
-    def resolve_studio_settings(self, info, studio_id: str):
-        studio = get_studio(studio_id)
-        if not studio:
-            return None
+    @require_perm(None)
+    def resolve_studio_settings(self, info, studio: Studio):
         return build_studio_settings(studio, info.context.user)

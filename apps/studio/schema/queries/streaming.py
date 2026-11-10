@@ -1,13 +1,9 @@
 import graphene
 from django.conf import settings
 
-from apps.common.translations import translate
 from apps.studio.schema.types import StreamingConfig
-from apps.studio.services.helpers import (
-    get_or_create_streaming_credential,
-    get_studio,
-)
-from apps.studio.services.permissions import Perm, has_perm
+from apps.studio.services.helpers import get_or_create_streaming_credential
+from apps.studio.services.permissions import Perm, require_perm
 
 
 def _build_streaming_config(studio) -> StreamingConfig:
@@ -34,10 +30,6 @@ class StreamingQuery(graphene.ObjectType):
         studio_id=graphene.String(required=True),
     )
 
-    def resolve_streaming_config(self, info, studio_id: str):
-        studio = get_studio(studio_id)
-        if not studio:
-            return None
-        if not has_perm(info.context.user, studio, Perm.VIEW_STREAM_CREDS):
-            raise Exception(translate("studio.not_authorized_view"))
+    @require_perm(Perm.VIEW_STREAM_CREDS)
+    def resolve_streaming_config(self, info, studio):
         return _build_streaming_config(studio)

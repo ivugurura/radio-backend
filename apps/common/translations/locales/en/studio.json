@@ -1,11 +1,7 @@
 {
   "studio_not_found": "Studio not found",
-  "not_authorized_rotate": "Not authorized to rotate streaming credentials",
-  "not_authorized_view": "Not authorized to view streaming credentials",
-  "not_authorized_skip": "Not authorized to skip tracks",
   "skip_failed": "Could not skip the track: {reason}",
   "studio_unreachable": "Radio studio is unreachable",
-  "not_authorized_settings": "Only studio owners and admins can change studio settings",
   "invalid_display_name": "The studio name is required and must be at most {max} characters",
   "invalid_loudness": "The loudness target must be between {low} and {high} LUFS"
 }
