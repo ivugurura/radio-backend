@@ -3,11 +3,11 @@ from zoneinfo import available_timezones
 import graphene
 import graphql_jwt
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.db.models import Q
 from django.utils.timezone import now as timezone_now
 from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.utils import get_refresh_token_model
@@ -17,29 +17,6 @@ from rest_framework.authtoken.models import Token
 from apps.common.translations import translate
 from apps.users.models import User
 from apps.users.types.user_types import UserType
-
-
-class RegisterUser(graphene.Mutation):
-    class Arguments:
-        user_name = graphene.String(required=True)
-        password = graphene.String(required=True)
-        email = graphene.String(required=True)
-        first_name = graphene.String(required=True)
-        last_name = graphene.String(required=True)
-        display_name = graphene.String(required=False)
-        phone = graphene.String(required=False)
-        profile_picture = graphene.String(required=False)
-
-    user = graphene.Field(UserType)
-    token = graphene.String()
-
-    def mutate(self, info, user_name, email, **kwargs):
-        if User.objects.filter(Q(user_name=user_name) | Q(email=email)).exists():
-            raise Exception(translate("auth.username_taken"))
-
-        user = User.objects.create_user(user_name=user_name, email=email, **kwargs)
-        payload = get_token(user)
-        return RegisterUser(user=user, token=payload)
 
 
 class LoginUser(graphene.Mutation):
@@ -56,6 +33,7 @@ class LoginUser(graphene.Mutation):
         user = authenticate(username=email, password=password)
         if not user:
             raise Exception(translate("auth.invalid_credentials"))
+        update_last_login(None, user)
         token = graphql_jwt.shortcuts.get_token(user)
         rest_payload = Token.objects.get_or_create(user=user)
 
@@ -176,7 +154,6 @@ class ChangePassword(graphene.Mutation):
 
 
 class UserMutations(graphene.ObjectType):
-    register_user = RegisterUser.Field()
     login_user = LoginUser.Field()
     update_profile = UpdateProfile.Field()
     change_password = ChangePassword.Field()

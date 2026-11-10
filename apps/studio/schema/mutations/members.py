@@ -3,24 +3,8 @@ import graphene
 from apps.studio.models.base import Studio
 from apps.studio.schema.member_types import StudioMember
 from apps.studio.schema.types import StudioRole
-from apps.studio.services.members import add_member, remove_member, update_member_role
+from apps.studio.services.members import remove_member, update_member_role
 from apps.studio.services.permissions import Perm, require_perm
-
-
-class AddStudioMember(graphene.Mutation):
-    """Give an existing user a role in a studio."""
-
-    class Arguments:
-        studio_id = graphene.String(required=True)
-        email = graphene.String(required=True)
-        role = StudioRole(required=True)
-
-    member = graphene.Field(StudioMember, required=True)
-
-    @require_perm(Perm.MANAGE_MEMBERS)
-    def mutate(self, info, studio: Studio, email: str, role):
-        member = add_member(info.context.user, studio, email, role)
-        return AddStudioMember(member=member)
 
 
 class UpdateStudioMemberRole(graphene.Mutation):
@@ -51,6 +35,5 @@ class RemoveStudioMember(graphene.Mutation):
 
 
 class StudioMemberMutations(graphene.ObjectType):
-    add_studio_member = AddStudioMember.Field()
     update_studio_member_role = UpdateStudioMemberRole.Field()
     remove_studio_member = RemoveStudioMember.Field()

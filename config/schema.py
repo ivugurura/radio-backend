@@ -13,12 +13,16 @@ from apps.studio.schema.queries.listeners import ListenerQuery
 from apps.studio.schema.queries.members import StudioMembersQuery
 from apps.studio.schema.queries.settings import StudioSettingsQuery
 from apps.studio.schema.queries.streaming import StreamingQuery
+from apps.users.schema.account import AccountMutations, AccountQuery
+from apps.users.schema.admin import UserAdminMutations, UserAdminQuery
 from apps.users.schema.mutations import UserMutations
 from apps.users.schema.queries import UserQuery
 
 
 class Query(
     UserQuery,
+    UserAdminQuery,
+    AccountQuery,
     MediasQuery,
     ListenerQuery,
     DashboardQuery,
@@ -36,6 +40,8 @@ class Query(
 
 class Mutation(
     UserMutations,
+    UserAdminMutations,
+    AccountMutations,
     MediasMutations,
     StreamingMutations,
     PlaybackMutations,

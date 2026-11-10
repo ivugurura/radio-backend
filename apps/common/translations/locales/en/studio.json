@@ -4,7 +4,6 @@
   "studio_unreachable": "Radio studio is unreachable",
   "invalid_display_name": "The studio name is required and must be at most {max} characters",
   "invalid_loudness": "The loudness target must be between {low} and {high} LUFS",
-  "member_user_not_found": "No active user has that email address",
   "member_exists": "This user is already a member of the studio",
   "member_not_found": "This user is not a member of the studio",
   "role_not_allowed": "You are not allowed to assign or change this role",

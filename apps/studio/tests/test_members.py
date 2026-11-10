@@ -12,9 +12,11 @@ from config.schema import schema
 Role = StudioMembership.Role
 
 MEMBERS = '{ studioMembers(studioId: "zz") { user { email } role canManage } }'
+# Adding a member goes through inviteUser: existing accounts are added at once.
 ADD = (
-    'mutation($email: String!, $role: StudioRole!) { addStudioMember('
-    'studioId: "zz", email: $email, role: $role) { member { role user { email } } } }'
+    'mutation($email: String!, $role: StudioRole!) { inviteUser('
+    'studioId: "zz", email: $email, role: $role) '
+    '{ created inviteLink user { email } } }'
 )
 UPDATE = (
     'mutation($userId: UUID!, $role: StudioRole!) { updateStudioMemberRole('
@@ -97,11 +99,12 @@ class StudioMembersQueryTests(MemberTestBase):
 
 
 class AddStudioMemberTests(MemberTestBase):
-    def test_admin_adds_lower_role(self):
+    def test_admin_adds_existing_account_with_lower_role(self):
         admin = self.member(Role.ADMIN)
         target = make_user()
         data = self.assertOk(run(ADD, admin, email=target.email.upper(), role='DJ'))
-        self.assertEqual(data['addStudioMember']['member']['role'], 'DJ')
+        self.assertFalse(data['inviteUser']['created'])
+        self.assertIsNone(data['inviteUser']['inviteLink'])  # has a password
         self.assertEqual(self.role_of(target), Role.DJ)
 
     def test_admin_cannot_add_admin_or_owner(self):
@@ -117,13 +120,13 @@ class AddStudioMemberTests(MemberTestBase):
         self.assertOk(run(ADD, owner, email=target.email, role='OWNER'))
         self.assertEqual(self.role_of(target), Role.OWNER)
 
-    def test_unknown_or_inactive_user(self):
+    def test_new_email_needs_names_and_disabled_account_is_refused(self):
         owner = self.member(Role.OWNER)
         result = run(ADD, owner, email='nobody@example.com', role='DJ')
-        self.assertError(result, 'studio.member_user_not_found')
+        self.assertError(result, 'auth.name_required')
         inactive = make_user(is_active=False)
         result = run(ADD, owner, email=inactive.email, role='DJ')
-        self.assertError(result, 'studio.member_user_not_found')
+        self.assertError(result, 'auth.user_disabled')
 
     def test_existing_member(self):
         owner = self.member(Role.OWNER)
@@ -143,6 +146,13 @@ class AddStudioMemberTests(MemberTestBase):
             ADD, self.member(Role.EDITOR), email=make_user().email, role='VIEWER'
         )
         self.assertError(result, 'common.forbidden')
+        result = run(
+            ADD,
+            self.member(Role.OWNER, studio=self.other),
+            email=make_user().email,
+            role='VIEWER',
+        )
+        self.assertError(result, 'studio.studio_not_found')
 
 
 class UpdateStudioMemberRoleTests(MemberTestBase):

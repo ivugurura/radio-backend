@@ -9,7 +9,7 @@ Rules, on top of MANAGE_MEMBERS:
 Errors are raised as translated ``Exception``s, like the rest of the schema.
 """
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.utils import timezone
 
 from apps.common.translations import translate
@@ -20,7 +20,6 @@ from apps.studio.services.permissions import (
     can_assign_role,
     check_perm,
 )
-from apps.users.models import User
 
 Role = StudioMembership.Role
 
@@ -88,27 +87,6 @@ def _ensure_other_owner(studio: Studio, membership: StudioMembership) -> None:
     )
     if len(owners) <= 1:
         _fail('last_owner')
-
-
-@transaction.atomic
-def add_member(actor, studio: Studio, email: str, role) -> StudioMembership:
-    check_perm(actor, studio, Perm.MANAGE_MEMBERS)
-    role = _normalize_role(role)
-    if not can_assign_role(actor, studio, role):
-        _fail('role_not_allowed')
-
-    user = User.objects.filter(
-        email__iexact=(email or '').strip(), is_active=True
-    ).first()
-    if user is None:
-        _fail('member_user_not_found')
-    if StudioMembership.objects.filter(studio=studio, user=user).exists():
-        _fail('member_exists')
-    try:
-        with transaction.atomic():
-            return StudioMembership.objects.create(studio=studio, user=user, role=role)
-    except IntegrityError:
-        _fail('member_exists')
 
 
 @transaction.atomic
