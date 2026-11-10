@@ -1,5 +1,29 @@
 import graphene
 
+from apps.studio.models.base import StudioMembership
+from apps.studio.services.permissions import Perm
+
+StudioRole = graphene.Enum(
+    "StudioRole",
+    [(value, value) for value in StudioMembership.Role.values],
+    description="A user's role in a studio",
+)
+StudioPermission = graphene.Enum(
+    "StudioPermission",
+    [(p.value, p.value) for p in Perm],
+    description="An action a role allows in a studio",
+)
+
+
+class StudioAccess(graphene.ObjectType):
+    """A studio the signed-in user can open, and what they may do there."""
+
+    studio_id = graphene.String(required=True, description="Studio slug")
+    display_name = graphene.String(required=True)
+    role = graphene.Field(StudioRole, description="Null for platform admins")
+    permissions = graphene.List(graphene.NonNull(StudioPermission), required=True)
+    assignable_roles = graphene.List(graphene.NonNull(StudioRole), required=True)
+
 
 class TimeRange(graphene.Enum):
     LAST_90_MIN = "LAST_90_MIN"

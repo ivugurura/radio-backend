@@ -3,5 +3,11 @@
   "skip_failed": "Ntibyashobotse gusimbuka indirimbo: {reason}",
   "studio_unreachable": "Sitidiyo ya radiyo ntiboneka",
   "invalid_display_name": "Izina rya sitidiyo rirakenewe kandi ntirigomba kurenza inyuguti {max}",
-  "invalid_loudness": "Ingano y’ijwi igomba kuba hagati ya {low} na {high} LUFS"
+  "invalid_loudness": "Ingano y’ijwi igomba kuba hagati ya {low} na {high} LUFS",
+  "member_user_not_found": "Nta mukoresha ukora ufite iyo imeri",
+  "member_exists": "Uyu mukoresha asanzwe ari umunyamuryango w’iyi sitidiyo",
+  "member_not_found": "Uyu mukoresha si umunyamuryango w’iyi sitidiyo",
+  "role_not_allowed": "Ntabwo wemerewe gutanga cyangwa guhindura uru ruhare",
+  "cannot_change_own_membership": "Ntushobora guhindura cyangwa gukuraho ubunyamuryango bwawe",
+  "last_owner": "Sitidiyo igomba guhorana nibura nyirayo umwe"
 }

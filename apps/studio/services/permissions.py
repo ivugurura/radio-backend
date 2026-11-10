@@ -110,6 +110,30 @@ def has_studio_access(user, studio: Studio) -> bool:
     return is_platform_admin(user) or get_role(user, studio) is not None
 
 
+def accessible_studios(user) -> list[tuple[Studio, str | None]]:
+    """Active studios the user can open, with their role in each (None for a
+    superuser who is not a member). Primes the role cache, so permission checks
+    on these studios cost no further queries."""
+    if not _is_authenticated(user):
+        return []
+    memberships = StudioMembership.objects.filter(
+        user=user, studio__is_active=True, studio__deleted_at__isnull=True
+    ).select_related('studio')
+    roles = {m.studio_id: m.role for m in memberships}
+    if is_platform_admin(user):
+        studios = list(Studio.objects.filter(is_active=True))
+    else:
+        studios = [m.studio for m in memberships]
+
+    cache = getattr(user, _ROLE_CACHE_ATTR, None)
+    if cache is None:
+        cache = {}
+        setattr(user, _ROLE_CACHE_ATTR, cache)
+    for studio in studios:
+        cache[studio.pk] = roles.get(studio.pk)
+    return sorted(((s, roles.get(s.pk)) for s in studios), key=lambda p: p[0].slug)
+
+
 def can_assign_role(actor, studio: Studio, role: str) -> bool:
     """Whether ``actor`` may grant, change or revoke ``role`` in ``studio``.
 
