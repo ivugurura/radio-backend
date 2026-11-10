@@ -4,7 +4,7 @@ import uuid
 from django.conf import settings
 from django.http import HttpRequest
 
-from apps.studio.models.base import Studio, StudioMembership
+from apps.studio.models.base import Studio
 from apps.studio.models.streaming import StreamingCredential
 
 # Slugs used before studios were renamed to language codes (migration 0009).
@@ -36,30 +36,6 @@ def is_studio_server_request(request: HttpRequest) -> bool:
     if not expected or not header.startswith("Bearer "):
         return False
     return secrets.compare_digest(header[len("Bearer ") :], expected)
-
-
-def can_manage_studio_settings(user, studio: Studio) -> bool:
-    """OWNER/ADMIN studio members (or Django staff) may edit studio settings."""
-    return can_manage_streaming_credential(user, studio)
-
-
-def can_manage_streaming_credential(user, studio: Studio) -> bool:
-    """OWNER/ADMIN studio members (or Django staff) may view/rotate stream credentials."""
-    if not getattr(user, "is_authenticated", False):
-        return False
-    if user.is_staff or user.is_superuser:
-        return True
-    return StudioMembership.objects.filter(
-        studio=studio,
-        user=user,
-        role__in=[StudioMembership.Role.OWNER, StudioMembership.Role.ADMIN],
-    ).exists()
-
-
-def can_control_playback(user, studio: Studio) -> bool:
-    """Playback control (e.g. skipping AutoDJ tracks) is limited to the same
-    OWNER/ADMIN members who manage the studio's stream."""
-    return can_manage_streaming_credential(user, studio)
 
 
 def _generate_username(studio: Studio) -> str:

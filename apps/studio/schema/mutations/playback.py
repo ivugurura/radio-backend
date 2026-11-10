@@ -4,7 +4,8 @@ import graphene
 from graphql_jwt.decorators import login_required
 
 from apps.common.translations import translate
-from apps.studio.services.helpers import can_control_playback, get_studio
+from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, has_perm
 from apps.studio.services.studio_control import StudioControlError, skip_track
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class SkipTrack(graphene.Mutation):
         studio = get_studio(studio_id)
         if not studio:
             raise Exception(translate("studio.studio_not_found"))
-        if not can_control_playback(info.context.user, studio):
+        if not has_perm(info.context.user, studio, Perm.CONTROL_PLAYBACK):
             raise Exception(translate("studio.not_authorized_skip"))
         try:
             skip_track(studio.slug)

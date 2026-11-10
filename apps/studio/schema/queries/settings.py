@@ -3,7 +3,8 @@ from graphql_jwt.decorators import login_required
 
 from apps.studio.models.base import Studio
 from apps.studio.schema.types import StudioSettings
-from apps.studio.services.helpers import can_manage_studio_settings, get_studio
+from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, has_perm
 
 
 def build_studio_settings(studio: Studio, user) -> StudioSettings:
@@ -16,7 +17,7 @@ def build_studio_settings(studio: Studio, user) -> StudioSettings:
         bitrate_kbps=studio.default_br_kbps,
         sample_rate_hz=studio.default_sr_hz,
         channels=studio.default_ch,
-        can_edit=can_manage_studio_settings(user, studio),
+        can_edit=has_perm(user, studio, Perm.EDIT_SETTINGS),
     )
 
 
