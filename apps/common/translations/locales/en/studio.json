@@ -8,5 +8,8 @@
   "member_not_found": "This user is not a member of the studio",
   "role_not_allowed": "You are not allowed to assign or change this role",
   "cannot_change_own_membership": "You cannot change or remove your own membership",
-  "last_owner": "A studio must keep at least one owner"
+  "last_owner": "A studio must keep at least one owner",
+  "invalid_slug": "The studio code must be one of the supported languages: {choices}",
+  "slug_taken": "A studio for \"{slug}\" already exists",
+  "last_active_studio": "At least one studio must stay active"
 }

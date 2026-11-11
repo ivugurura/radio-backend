@@ -8,5 +8,8 @@
   "member_not_found": "Uyu mukoresha si umunyamuryango w’iyi sitidiyo",
   "role_not_allowed": "Ntabwo wemerewe gutanga cyangwa guhindura uru ruhare",
   "cannot_change_own_membership": "Ntushobora guhindura cyangwa gukuraho ubunyamuryango bwawe",
-  "last_owner": "Sitidiyo igomba guhorana nibura nyirayo umwe"
+  "last_owner": "Sitidiyo igomba guhorana nibura nyirayo umwe",
+  "invalid_slug": "Kode ya sitidiyo igomba kuba rumwe mu ndimi zemewe: {choices}",
+  "slug_taken": "Sitidiyo ya \"{slug}\" isanzwe ibaho",
+  "last_active_studio": "Nibura sitidiyo imwe igomba guhora ikora"
 }

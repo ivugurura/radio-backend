@@ -8,11 +8,13 @@ from apps.studio.schema.mutations.members import StudioMemberMutations
 from apps.studio.schema.mutations.playback import PlaybackMutations
 from apps.studio.schema.mutations.settings import StudioSettingsMutations
 from apps.studio.schema.mutations.streaming import StreamingMutations
+from apps.studio.schema.mutations.studios import StudioAdminMutations
 from apps.studio.schema.queries.dashboard import DashboardQuery
 from apps.studio.schema.queries.listeners import ListenerQuery
 from apps.studio.schema.queries.members import StudioMembersQuery
 from apps.studio.schema.queries.settings import StudioSettingsQuery
 from apps.studio.schema.queries.streaming import StreamingQuery
+from apps.studio.schema.queries.studios import StudiosQuery
 from apps.users.schema.account import AccountMutations, AccountQuery
 from apps.users.schema.admin import UserAdminMutations, UserAdminQuery
 from apps.users.schema.mutations import UserMutations
@@ -29,6 +31,7 @@ class Query(
     StreamingQuery,
     StudioSettingsQuery,
     StudioMembersQuery,
+    StudiosQuery,
     ChatQuery,
     graphene.ObjectType,
 ):
@@ -47,6 +50,7 @@ class Mutation(
     PlaybackMutations,
     StudioSettingsMutations,
     StudioMemberMutations,
+    StudioAdminMutations,
     graphene.ObjectType,
 ):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()
