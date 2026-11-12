@@ -5,6 +5,7 @@ from django.utils import timezone
 from apps.chat.models import ChatMessage, ChatMute
 from apps.chat.schema.types import ChatMessageType, ChatMuteType
 from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, has_perm, require_perm
 
 MAX_CHAT_PAGE_SIZE = 10
 
@@ -26,9 +27,10 @@ class ChatQuery(graphene.ObjectType):
         if not studio:
             return []
 
+        # Public history for listeners; moderators also see hidden messages.
         manager = (
             ChatMessage.all_objects
-            if info.context.user.is_authenticated
+            if has_perm(info.context.user, studio, Perm.MODERATE_CHAT)
             else ChatMessage.objects
         )
         qs = manager.filter(studio=studio).select_related(
@@ -41,15 +43,11 @@ class ChatQuery(graphene.ObjectType):
         messages = list(qs.order_by("-created_at")[:limit])
         return list(reversed(messages))
 
-    def resolve_chat_mutes(self, info, studio_slug):
-        if not info.context.user.is_authenticated:
-            return []
-
-        studio = get_studio(studio_slug)
-        if not studio:
-            return []
-
+    @require_perm(Perm.MODERATE_CHAT, studio_arg="studio_slug")
+    def resolve_chat_mutes(self, info, studio):
         now = timezone.now()
-        return ChatMute.objects.filter(studio=studio).filter(
-            Q(expires_at__isnull=True) | Q(expires_at__gt=now)
-        ).order_by("-created_at")
+        return (
+            ChatMute.objects.filter(studio=studio)
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .order_by("-created_at")
+        )

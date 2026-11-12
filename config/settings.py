@@ -182,6 +182,8 @@ LANGUAGE_CODE = "en"
 LANGUAGES = [
     ("en", "English"),
     ("rw", "Kinyarwanda"),
+    ("fr", "French"),
+    ("sw", "Swahili"),
 ]
 
 TIME_ZONE = "UTC"
@@ -260,3 +262,33 @@ STREAMING_CREDENTIAL_KEY = os.getenv("STREAMING_CREDENTIAL_KEY", "")
 # SOURCE port (often an Nginx `stream` TCP proxy), distinct from the HTTP port.
 STREAMING_INGEST_HOST = os.getenv("STREAMING_INGEST_HOST", "")
 STREAMING_INGEST_PORT = int(os.getenv("STREAMING_INGEST_PORT", ""))
+
+# --- Accounts: invites, password resets, email ------------------------------
+# Where the UI lives; invite and reset links point here
+# (<FRONTEND_URL>/accept-invite?token=..., /reset-password?token=...).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+
+INVITE_TOKEN_TTL_HOURS = int(os.getenv("INVITE_TOKEN_TTL_HOURS", str(7 * 24)))
+PASSWORD_RESET_TOKEN_TTL_MINUTES = int(
+    os.getenv("PASSWORD_RESET_TOKEN_TTL_MINUTES", "60")
+)
+
+# Email goes out over SMTP once EMAIL_HOST is set (Gmail, Zoho, Brevo, ...).
+# Without it, nothing is sent: admins copy invite/reset links instead, and
+# "Forgot password" is hidden on the login page.
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
+EMAIL_TIMEOUT = 15
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@localhost"
+)
+EMAIL_ENABLED = bool(EMAIL_HOST)
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_ENABLED
+    else "django.core.mail.backends.dummy.EmailBackend"
+)

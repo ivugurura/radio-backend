@@ -1,0 +1,15 @@
+{
+  "studio_not_found": "Studio not found",
+  "skip_failed": "Could not skip the track: {reason}",
+  "studio_unreachable": "Radio studio is unreachable",
+  "invalid_display_name": "The studio name is required and must be at most {max} characters",
+  "invalid_loudness": "The loudness target must be between {low} and {high} LUFS",
+  "member_exists": "This user is already a member of the studio",
+  "member_not_found": "This user is not a member of the studio",
+  "role_not_allowed": "You are not allowed to assign or change this role",
+  "cannot_change_own_membership": "You cannot change or remove your own membership",
+  "last_owner": "A studio must keep at least one owner",
+  "invalid_slug": "The studio code must be one of the supported languages: {choices}",
+  "slug_taken": "A studio for \"{slug}\" already exists",
+  "last_active_studio": "At least one studio must stay active"
+}

@@ -3,7 +3,7 @@ from django.db.models import Q
 
 from apps.medias.models import Track
 from apps.medias.schema.types import TrackConnection
-from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, require_perm
 
 
 class MediasQuery(graphene.ObjectType):
@@ -14,8 +14,8 @@ class MediasQuery(graphene.ObjectType):
         search=graphene.String(),
     )
 
-    def resolve_tracks(self, info, studio_slug, state=None, search=None, **kwargs):
-        studio = get_studio(studio_slug)
+    @require_perm(Perm.VIEW_MEDIA, studio_arg="studio_slug")
+    def resolve_tracks(self, info, studio, state=None, search=None, **kwargs):
         qs = (
             Track.objects.filter(studio=studio)
             .select_related("is_duplicate_of")

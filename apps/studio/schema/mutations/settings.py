@@ -1,12 +1,12 @@
 from decimal import Decimal
 
 import graphene
-from graphql_jwt.decorators import login_required
 
 from apps.common.translations import translate
+from apps.studio.models.base import Studio
 from apps.studio.schema.queries.settings import build_studio_settings
 from apps.studio.schema.types import StudioSettings
-from apps.studio.services.helpers import can_manage_studio_settings, get_studio
+from apps.studio.services.permissions import Perm, require_perm
 
 # Typical streaming targets sit between -16 and -14 LUFS; outside this range
 # the output is either too quiet to hear or squashed and distorted.
@@ -26,23 +26,17 @@ class UpdateStudioSettings(graphene.Mutation):
 
     studio_settings = graphene.Field(StudioSettings)
 
-    @login_required
+    @require_perm(Perm.EDIT_SETTINGS)
     def mutate(
         self,
         info,
-        studio_id: str,
+        studio: Studio,
         display_name: str,
         description: str,
         auto_normalize: bool,
         loudness_target_lufs: float,
     ):
         user = info.context.user
-        studio = get_studio(studio_id)
-        if not studio:
-            raise Exception(translate("studio.studio_not_found"))
-        if not can_manage_studio_settings(user, studio):
-            raise Exception(translate("studio.not_authorized_settings"))
-
         display_name = display_name.strip()
         if not display_name or len(display_name) > DISPLAY_NAME_MAX:
             raise Exception(

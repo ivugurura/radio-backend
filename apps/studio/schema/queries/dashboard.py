@@ -29,7 +29,7 @@ from apps.studio.schema.types import (
     StudioCapacity,
     TimeRange,
 )
-from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, require_perm
 
 # Rough capacity budget for the VPS (2 vCPU, 8 GB RAM, 100 GB disk, 8 TB/month).
 # Disk is in GiB: a "100 GB" disk formats to ~93 GiB usable.
@@ -144,11 +144,8 @@ class DashboardQuery(graphene.ObjectType):
     )
 
     # -------- Trend --------
-    def resolve_listening_trend(self, info, studio_id: str, range: str):
-        studio = get_studio(studio_id)
-        if not studio:
-            return ListeningTrend(points=[], peak=None)
-
+    @require_perm(Perm.VIEW_ANALYTICS)
+    def resolve_listening_trend(self, info, studio: Studio, range: str):
         now = timezone.now()
         if range == TimeRange.LAST_7_DAYS.value:
             since = now - datetime.timedelta(days=7)
@@ -182,7 +179,8 @@ class DashboardQuery(graphene.ObjectType):
                 if idx % 3 != 0:
                     continue
             active = b.active_peak or 0
-            points.append(ListeningTrendPoint(ts=b.bucket_start, active=active))
+            points.append(ListeningTrendPoint(
+                ts=b.bucket_start, active=active))
 
         # The peak is always today's (UTC day, as in the summary), whatever the
         # charted range. Ties keep the earliest minute to reach that peak.
@@ -206,24 +204,8 @@ class DashboardQuery(graphene.ObjectType):
         return ListeningTrend(points=points, peak=peak_point)
 
     # -------- Summary --------
-    def resolve_listening_summary_count(self, info, studio_id: str):
-        studio = get_studio(studio_id)
-        if not studio:
-            return ListeningSummary(
-                today=0,
-                yesterday=0,
-                last7Days=0,
-                last30Days=0,
-                last30DaysChangePct=0.0,
-                prev30Days=0,
-                lastMonth=0,
-                uniqueToday=0,
-                uniqueYesterday=0,
-                uniqueLast7Days=0,
-                uniqueLast30Days=0,
-                uniqueLastMonth=0,
-            )
-
+    @require_perm(Perm.VIEW_ANALYTICS)
+    def resolve_listening_summary_count(self, info, studio: Studio):
         now = timezone.now()
         # Day boundaries in UTC
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -232,7 +214,8 @@ class DashboardQuery(graphene.ObjectType):
         thirty_days_start = today_start - datetime.timedelta(days=30)
         prev_thirty_days_start = today_start - datetime.timedelta(days=60)
         month_start = today_start.replace(day=1)
-        last_month_start = (month_start - datetime.timedelta(days=1)).replace(day=1)
+        last_month_start = (
+            month_start - datetime.timedelta(days=1)).replace(day=1)
 
         windows = {
             "today": Q(started_at__gte=today_start),
@@ -285,16 +268,8 @@ class DashboardQuery(graphene.ObjectType):
         )
 
     # -------- Capacity --------
-    def resolve_studio_capacity(self, info, studio_id: str):
-        studio = get_studio(studio_id)
-        if not studio:
-            return StudioCapacity(
-                listeningSeconds=0,
-                listeningSecondsQuota=0,
-                diskUsedGb=0.0,
-                diskQuotaGb=0.0,
-            )
-
+    @require_perm(Perm.VIEW_ANALYTICS)
+    def resolve_studio_capacity(self, info, studio: Studio):
         values = cache.get_or_set(
             f"studio-capacity:{studio.id}",
             lambda: _compute_capacity(studio),
@@ -303,11 +278,9 @@ class DashboardQuery(graphene.ObjectType):
         return StudioCapacity(**values)
 
     # -------- Current Queue --------
-    def resolve_current_queue(self, info, studio_id: str, limit: int):
+    @require_perm(Perm.VIEW_ANALYTICS)
+    def resolve_current_queue(self, info, studio: Studio, limit: int):
         limit = max(limit or 0, 5)
-        studio = get_studio(studio_id)
-        if not studio:
-            return CurrentQueue(items=[])
 
         all_events = PlayEvent.objects.filter(
             studio=studio, track__isnull=False)

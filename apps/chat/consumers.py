@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.studio.services.helpers import get_studio
+from apps.studio.services.permissions import Perm, has_perm
 
 from .models import ChatMessage, ChatMute, is_listener_muted
 
@@ -126,10 +127,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         listener_client_id = (query_params.get("listener_client_id") or [None])[0]
         display_name = (query_params.get("display_name") or [None])[0]
 
-        self.is_admin = self.scope["user"].is_authenticated
+        # Moderation is decided once per connection; a role change applies on
+        # the next reconnect.
+        user = self.scope["user"]
+        self.is_admin = user.is_authenticated and await database_sync_to_async(
+            has_perm
+        )(user, studio, Perm.MODERATE_CHAT)
 
         if not self.is_admin and not listener_client_id:
-            await self.close(code=4001)
+            # 4003: signed in but not a moderator here; 4001: anonymous with no id.
+            await self.close(code=4003 if user.is_authenticated else 4001)
             return
 
         self.studio = studio
@@ -205,9 +212,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             ),
             author=self.scope["user"] if self.is_admin else None,
             listener_client_id="" if self.is_admin else self.listener_client_id,
-            listener_display_name=(
-                "" if self.is_admin else self.listener_display_name
-            ),
+            listener_display_name=("" if self.is_admin else self.listener_display_name),
             body=body,
             quoted_message=quoted_message,
         )

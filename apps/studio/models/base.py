@@ -47,5 +47,16 @@ class StudioMembership(BaseModel):
 
     class Meta:
         db_table = "studio_memberships"
-        unique_together = ("studio", "user")
+        # Only live rows must be unique: removing a member soft-deletes the row,
+        # and they can be added back later.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["studio", "user"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="uniq_live_studio_membership",
+            )
+        ]
         indexes = [models.Index(fields=["studio", "role"])]
+
+    def __str__(self):
+        return f"{self.user} @ {self.studio.slug} ({self.role})"
