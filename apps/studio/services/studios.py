@@ -21,6 +21,7 @@ from apps.studio.services.helpers import (
     get_studio,
 )
 from apps.studio.services.permissions import clear_role_cache, is_platform_admin
+from apps.studio.services.studio_control import request_studio_sync
 
 DISPLAY_NAME_MAX = 120
 
@@ -96,6 +97,13 @@ def _owner(owner_user_id):
     return user
 
 
+def _notify_radio_studio() -> None:
+    """After commit, ask radio-studio to re-check the active studios so the
+    change takes effect now rather than at its next poll. It reads the list
+    back from us, so it must not run before the change is committed."""
+    transaction.on_commit(request_studio_sync, robust=True)
+
+
 def _create_media_folders(studio: Studio) -> None:
     # studio_paths() creates the folder tree as a side effect.
     from apps.medias.services.paths import studio_paths
@@ -136,6 +144,7 @@ def create_studio(
         )
         clear_role_cache(owner)
     transaction.on_commit(lambda: _create_media_folders(studio))
+    _notify_radio_studio()
     return studio
 
 
@@ -161,4 +170,5 @@ def set_studio_active(actor, studio_id: str, active: bool) -> Studio:
     studio.is_active = active
     studio.updated_at = timezone.now()  # BaseModel has no auto_now
     studio.save(update_fields=['is_active', 'updated_at'])
+    _notify_radio_studio()
     return studio
