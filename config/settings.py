@@ -182,6 +182,8 @@ LANGUAGE_CODE = "en"
 LANGUAGES = [
     ("en", "English"),
     ("rw", "Kinyarwanda"),
+    ("fr", "French"),
+    ("sw", "Swahili"),
 ]
 
 TIME_ZONE = "UTC"

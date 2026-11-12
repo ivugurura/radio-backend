@@ -16,7 +16,7 @@ from pathlib import Path
 LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 
 DEFAULT_LANGUAGE = "en"
-SUPPORTED_LANGUAGES = ("en", "rw")
+SUPPORTED_LANGUAGES = ("en", "rw", "fr", "sw")
 
 
 @lru_cache(maxsize=None)

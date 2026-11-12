@@ -72,11 +72,12 @@ class StudioQueryTests(StudioAdminTestBase):
     def test_available_slugs_skip_taken_and_soft_deleted(self):
         self.assertEqual(
             self.assertOk(run(AVAILABLE, self.superuser))['availableStudioSlugs'],
-            ['en'],
+            ['en', 'fr', 'sw'],
         )
         Studio.objects.create(slug='en', display_name='EN').delete()
         self.assertEqual(
-            self.assertOk(run(AVAILABLE, self.superuser))['availableStudioSlugs'], []
+            self.assertOk(run(AVAILABLE, self.superuser))['availableStudioSlugs'],
+            ['fr', 'sw'],
         )
 
     def test_public_studios_lists_active_only_for_anyone(self):
@@ -129,8 +130,8 @@ class CreateStudioTests(StudioAdminTestBase):
         )
 
     def test_rejects_bad_taken_and_legacy_slugs(self):
-        choices = 'en, rw'
-        for slug in ('fr', 'reformation-rw', ''):
+        choices = 'en, rw, fr, sw'
+        for slug in ('de', 'reformation-rw', ''):
             self.assertError(
                 run(CREATE, self.superuser, id=slug, name='X'),
                 'studio.invalid_slug',
