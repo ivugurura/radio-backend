@@ -17,7 +17,8 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-RADIO_ROOT = Path(os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
+RADIO_ROOT = Path(
+    os.getenv("RADIO_ROOT", BASE_DIR / "var" / "radio")).resolve()
 RADIO_STUDIOS_ROOT = RADIO_ROOT / "studios"
 
 # Target bitrate for normalized MP3 when publishing
@@ -266,7 +267,7 @@ STREAMING_INGEST_PORT = int(os.getenv("STREAMING_INGEST_PORT", ""))
 # --- Accounts: invites, password resets, email ------------------------------
 # Where the UI lives; invite and reset links point here
 # (<FRONTEND_URL>/accept-invite?token=..., /reset-password?token=...).
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
 
 INVITE_TOKEN_TTL_HOURS = int(os.getenv("INVITE_TOKEN_TTL_HOURS", str(7 * 24)))
 PASSWORD_RESET_TOKEN_TTL_MINUTES = int(
@@ -280,11 +281,13 @@ EMAIL_HOST = os.getenv("EMAIL_HOST", "")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
+EMAIL_USE_TLS = os.getenv(
+    "EMAIL_USE_TLS", "true").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = os.getenv(
+    "EMAIL_USE_SSL", "false").lower() in ("1", "true", "yes")
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@localhost"
+    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER
 )
 EMAIL_ENABLED = bool(EMAIL_HOST)
 EMAIL_BACKEND = (
