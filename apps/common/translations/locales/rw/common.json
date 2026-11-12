@@ -1,5 +1,5 @@
 {
-  "error": "Hari ikitagenze neza",
-  "not_found": "Ntibyabonetse",
-  "forbidden": "Ntabwo mwemerewe gukora ibyo"
+  "error": "Something went wrong",
+  "not_found": "Not found",
+  "forbidden": "You do not have permission to do that"
 }
